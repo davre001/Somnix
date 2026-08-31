@@ -262,6 +262,68 @@ Without test funds or a live window, judges can see the screens, but they will w
 
 ---
 
+## Backend architecture
+
+SOMNIX is chain-first. Wallet actions (buy Up/Down, claim) always happen **client-side**, because only the user's own wallet can sign them — a server can never do that part.
+
+The backend exists for the few things a browser should not do alone: talking to the DreamDEX indexer without CORS/rate-limit pain, keeping contract/network config out of client bundles, and rendering the friend/share card image. It holds **no funds, no keys, and no accounts**.
+
+### What it is
+
+- Next.js API routes, same app as the frontend (`app/api/*`) — no separate service, no database.
+- Everything a route returns is public, cacheable data. Nothing it does requires a signature.
+
+### Responsibilities
+
+| Route | Does | Why not just call DreamDEX from the browser |
+| --- | --- | --- |
+| `GET /api/markets` | Proxies `listLiveBinaryMarkets` from the DreamDEX indexer, short server-side cache (a few seconds) | Cuts duplicate client calls, avoids hammering the indexer, one place to normalize the response |
+| `GET /api/markets/:id/orderbook` | Proxies `fetchOrderBook` for the odds bar | Same as above — short-lived cache, one shape for the UI |
+| `GET /api/config` | Returns network id, indexer URL, contract addresses from server env | Keeps deployment-specific values out of the client bundle; swap testnet/mainnet without a rebuild |
+| `GET /api/card/:marketId/:side` | Renders the friend/share card PNG (coin, window, side) via `@vercel/og` | Social platforms fetch OG images server-side; a client-only page can't serve that |
+
+Explicitly **not** here: creating orders, claiming, or anything touching a wallet — those stay in `lib/` on the client, same as `frontend_implementation.md` describes. Day budget, lock state, and recents also stay client-side (`localStorage`) — this is a hackathon build with no accounts, so there's nothing to key server storage on.
+
+### Verification still happens on-chain, on the client
+
+The indexer proxy is a convenience, not a source of truth. Per the integration section above, the client always re-checks `getMarketOnchain` (status must be `Trading`) right before a tap — a slightly stale cached list from `/api/markets` should never be trusted to authorize a spend.
+
+### Structure
+
+```text
+app/
+  api/
+    markets/
+      route.ts              # GET list
+      [id]/
+        orderbook/
+          route.ts           # GET odds
+    config/
+      route.ts               # GET network + contract addresses
+    card/
+      [marketId]/
+        [side]/
+          route.ts           # GET share card image
+lib/
+  server/
+    dreamdex.ts              # indexer client + short TTL cache
+    env.ts                   # typed server env (network, contracts, indexer URL)
+```
+
+### Env
+
+Server-only values (never exposed to the client) live in `.env.local`:
+
+```bash
+DREAMDEX_INDEXER_URL=
+SOMNIA_TESTNET_RPC_URL=
+DREAMDEX_CONTRACT_ADDRESSES=
+```
+
+Public, client-safe values (if any) stay prefixed `NEXT_PUBLIC_*` and are set directly in `lib/`, not routed through the backend.
+
+---
+
 ## How to run
 
 ```bash
