@@ -277,12 +277,13 @@ The backend exists for the few things a browser should not do alone: talking to 
 
 | Route | Does | Why not just call DreamDEX from the browser |
 | --- | --- | --- |
-| `GET /api/markets` | Proxies `listLiveBinaryMarkets` from the DreamDEX indexer, short server-side cache (a few seconds) | Cuts duplicate client calls, avoids hammering the indexer, one place to normalize the response |
-| `GET /api/markets/:id/orderbook` | Proxies `fetchOrderBook` for the odds bar | Same as above — short-lived cache, one shape for the UI |
-| `GET /api/config` | Returns network id, indexer URL, contract addresses from server env | Keeps deployment-specific values out of the client bundle; swap testnet/mainnet without a rebuild |
-| `GET /api/card/:marketId/:side` | Renders the friend/share card PNG (coin, window, side) via `@vercel/og` | Social platforms fetch OG images server-side; a client-only page can't serve that |
+| `GET /api/markets` | Calls the SDK client's `listLiveBinaryMarkets()` against the DreamDEX indexer, short server-side cache (a few seconds) | Cuts duplicate client calls, avoids hammering the indexer, one place to normalize the response |
+| `GET /api/markets/:id/orderbook` | Resolves the market's pool address (`client.getMarket`) then reads `client.getBinaryOrderBook(pool)` for the odds bar | Same as above — short-lived cache, one shape for the UI |
+| `GET /api/card/:marketId/:side` | Renders the friend/share card PNG (coin, window, side) via Next's built-in `next/og` | Social platforms fetch OG images server-side; a client-only page can't serve that |
 
 Explicitly **not** here: creating orders, claiming, or anything touching a wallet — those stay in `lib/` on the client, same as `frontend_implementation.md` describes. Day budget, lock state, and recents also stay client-side (`localStorage`) — this is a hackathon build with no accounts, so there's nothing to key server storage on.
+
+There's no `/api/config` route: `@somnia-chain/markets-sdk` ships the testnet chain definition (`somniaShannon`, from `@somnia-chain/markets-sdk/chains`) and the protocol's contract addresses (`SOMNIA_TESTNET_ADDRESSES`) as public constants. Both frontend and backend import them directly from the package — nothing deployment-specific to route through a server.
 
 ### Verification still happens on-chain, on the client
 
@@ -298,16 +299,14 @@ app/
       [id]/
         orderbook/
           route.ts           # GET odds
-    config/
-      route.ts               # GET network + contract addresses
     card/
       [marketId]/
         [side]/
-          route.ts           # GET share card image
+          route.tsx          # GET share card image (next/og)
 lib/
   server/
-    dreamdex.ts              # indexer client + short TTL cache
-    env.ts                   # typed server env (network, contracts, indexer URL)
+    dreamdex.ts              # SomniaMarkets client (indexerUrl + testnet chain/addresses) + short TTL cache
+    env.ts                   # typed server env (indexer URL, optional admin secret)
 ```
 
 ### Env
@@ -316,11 +315,11 @@ Server-only values (never exposed to the client) live in `.env.local`:
 
 ```bash
 DREAMDEX_INDEXER_URL=
-SOMNIA_TESTNET_RPC_URL=
-DREAMDEX_CONTRACT_ADDRESSES=
+# Optional: Hasura role/admin-secret for privileged server-only indexer reads.
+DREAMDEX_INDEXER_ADMIN_SECRET=
 ```
 
-Public, client-safe values (if any) stay prefixed `NEXT_PUBLIC_*` and are set directly in `lib/`, not routed through the backend.
+The testnet chain and contract addresses aren't env vars — they're imported straight from `@somnia-chain/markets-sdk` (`somniaShannon`, `SOMNIA_TESTNET_ADDRESSES`), on both client and server.
 
 ---
 
