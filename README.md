@@ -270,7 +270,7 @@ The backend exists for the few things a browser should not do alone: talking to 
 
 ### What it is
 
-- Next.js API routes, same app as the frontend (`app/api/*`) — no separate service, no database.
+- Next.js API routes, same app as the frontend (`backend/app/api/*`) — no separate service, no database.
 - Everything a route returns is public, cacheable data. Nothing it does requires a signature.
 
 ### Responsibilities
@@ -291,33 +291,44 @@ The indexer proxy is a convenience, not a source of truth. Per the integration s
 
 ### Structure
 
+The whole Next.js app (this is the only one — frontend pages will land in the same `app/` tree once built) lives under `backend/`; project-level config (`package.json`, `tsconfig.json`, `next.config.ts`, `.env.local`) stays at the repo root:
+
 ```text
-app/
-  api/
-    markets/
-      route.ts              # GET list
-      [id]/
-        orderbook/
-          route.ts           # GET odds
-    card/
-      [marketId]/
-        [side]/
-          route.tsx          # GET share card image (next/og)
-lib/
-  server/
-    dreamdex.ts              # SomniaMarkets client (indexerUrl + testnet chain/addresses) + short TTL cache
-    env.ts                   # typed server env (indexer URL, optional admin secret)
+backend/
+  app/
+    api/
+      markets/
+        route.ts              # GET list
+        [id]/
+          orderbook/
+            route.ts           # GET odds
+      card/
+        [marketId]/
+          [side]/
+            route.tsx          # GET share card image (next/og)
+  lib/
+    server/
+      dreamdex.ts              # SomniaMarkets client (indexerUrl + testnet chain/addresses) + short TTL cache
+      env.ts                   # typed server env (indexer URL, optional admin secret)
+  tsconfig.json                # extends ../tsconfig.json; redefines `@/*` relative to backend/
+package.json                   # scripts run `next dev|build|start backend`
+tsconfig.json                  # shared compiler options + `@/*` -> `backend/*`
+next.config.ts                 # also loads the root .env.local (see below)
 ```
+
+`next dev|build|start` take `backend` as the project directory (`package.json` scripts), so Next resolves `app/` and `lib/` from there. `backend/tsconfig.json` exists only to keep the `@/*` alias working with that layout — it extends the root config.
 
 ### Env
 
-Server-only values (never exposed to the client) live in `.env.local`:
+Server-only values (never exposed to the client) live in `.env.local` **at the repo root**, alongside the other project config:
 
 ```bash
 DREAMDEX_INDEXER_URL=
 # Optional: Hasura role/admin-secret for privileged server-only indexer reads.
 DREAMDEX_INDEXER_ADMIN_SECRET=
 ```
+
+Next's automatic `.env` discovery follows the directory passed to the CLI (`backend`), not the repo root, so `next.config.ts` explicitly loads the root env files via `@next/env`'s `loadEnvConfig` — that keeps `.env.local` at the root instead of duplicating it inside `backend/`.
 
 The testnet chain and contract addresses aren't env vars — they're imported straight from `@somnia-chain/markets-sdk` (`somniaShannon`, `SOMNIA_TESTNET_ADDRESSES`), on both client and server.
 
