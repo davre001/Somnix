@@ -1,8 +1,8 @@
-# Close the Chart
+# SOMNIX
 
 **Lock one guess for this hour. Hide the price. See the result when the timer ends.**
 
-Close the Chart is an app on DreamDEX Event Contracts (Somnia).  
+SOMNIX is an app on DreamDEX Event Contracts (Somnia).  
 You say whether Bitcoin or Ethereum will finish this short window **up or down**. You can only lose what you put in. After you tap, the live price is hidden on purpose — so you stop refreshing the chart.
 
 Built for the Somnia × DreamDEX Event Contracts Hackathon.
@@ -16,7 +16,7 @@ Every 15 minutes or every hour, DreamDEX already runs a simple market:
 - **Green (Up)** = the coin finishes at or above the price when the window started  
 - **Red (Down)** = the coin finishes below that start price  
 
-Close the Chart turns that market into a **decision**, not a trading screen.
+SOMNIX turns that market into a **decision**, not a trading screen.
 
 You:
 
@@ -139,13 +139,6 @@ What you see:
 - Watch mode for people who are not ready to trade  
 - Odds warning when the crowd has already piled onto one side  
 
-**Not in this version (on purpose)**
-
-- World Cup or custom events (DreamDEX does not list those)  
-- Leverage, loans, or liquidation  
-- Full exchange tools (order book ladder, many order types)  
-- An “AI fund” that trades while you sleep  
-
 ---
 
 ## User workflow
@@ -176,7 +169,7 @@ If a tap would fail (closed window, empty market, amount too small, not enough f
 Three layers:
 
 1. **You** — Green or Red, and how much.  
-2. **Close the Chart** — lock screen, budget, claim, next window, friend card.  
+2. **SOMNIX** — lock screen, budget, claim, next window, friend card.  
 3. **DreamDEX on Somnia** — the real bets, the real prices, the real win/lose rule.
 
 We do **not** create our own betting system. We use **DreamDEX Event Contracts**.
@@ -265,14 +258,7 @@ Without test funds or a live window, judges can see the screens, but they will w
 - Day budget and “already locked this window”  
 - Hide-price state until the timer ends  
 - Last results for the score list  
-- Friend-card link (window + side, not your private keys)  
-
-**What we do not need for version 1**
-
-- Our own blockchain contracts  
-- A custom server (unless we later add notifications)  
-- An AI model  
-- App Store / Play Store listing  
+- Friend-card link (window + side, not your private keys)    
 
 ---
 
