@@ -3,22 +3,26 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev backend",
+    "predev": "node scripts/copy-swagger-ui.js",
+    "dev": "next dev backend -p 4000",
+    "prebuild": "node scripts/copy-swagger-ui.js",
     "build": "next build backend",
-    "start": "next start backend",
+    "prestart": "node scripts/copy-swagger-ui.js",
+    "start": "next start backend -p 4000",
     "lint": "next lint backend"
   },
   "dependencies": {
+    "@somnia-chain/markets-sdk": "^0.28.0",
     "next": "^15.0.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "viem": "^2.21.0",
-    "@somnia-chain/markets-sdk": "^0.28.0"
+    "swagger-ui-dist": "^5.32.14",
+    "viem": "^2.21.0"
   },
   "devDependencies": {
-    "typescript": "^5.5.0",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0"
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.5.0"
   }
 }
