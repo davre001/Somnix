@@ -5,7 +5,7 @@ import {
   type BookLevel,
 } from "@somnia-chain/markets-sdk";
 import { somniaShannon } from "@somnia-chain/markets-sdk/chains";
-import { serverEnv } from "./env";
+import { serverEnv } from "./env.js";
 
 export type SerializedBookLevel = { price: string; quantity: string };
 export type SerializedOrderBook = {

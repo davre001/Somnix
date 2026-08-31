@@ -1,28 +1,24 @@
 {
-  "name": "somnix",
+  "name": "somnix-backend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "predev": "node scripts/copy-swagger-ui.js",
-    "dev": "next dev backend -p 4000",
-    "prebuild": "node scripts/copy-swagger-ui.js",
-    "build": "next build backend",
-    "prestart": "node scripts/copy-swagger-ui.js",
-    "start": "next start backend -p 4000",
-    "lint": "next lint backend"
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@somnia-chain/markets-sdk": "^0.28.0",
-    "next": "^15.0.0",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "swagger-ui-dist": "^5.32.14",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "sharp": "^0.35.4",
     "viem": "^2.21.0"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^20.14.0",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.5.0"
   }
 }
