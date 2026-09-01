@@ -15,11 +15,25 @@ const BASE_PRICES: Record<WindowPair, number> = {
 };
 
 /**
+ * Returns duration in milliseconds for a window length
+ */
+export function getWindowDurationMs(length: WindowLength): number {
+  switch (length) {
+    case '1m': return 1 * 60 * 1000;
+    case '3m': return 3 * 60 * 1000;
+    case '5m': return 5 * 60 * 1000;
+    case '15m': return 15 * 60 * 1000;
+    case '1h': return 60 * 60 * 1000;
+    default: return 15 * 60 * 1000;
+  }
+}
+
+/**
  * Calculates current synchronized window bounds based on real clock time
  */
 export function getCurrentWindowBounds(length: WindowLength): { startTime: number; endTime: number; remainingMs: number } {
   const now = Date.now();
-  const windowDurationMs = length === '15m' ? 15 * 60 * 1000 : 60 * 60 * 1000;
+  const windowDurationMs = getWindowDurationMs(length);
   
   const startTime = Math.floor(now / windowDurationMs) * windowDurationMs;
   const endTime = startTime + windowDurationMs;

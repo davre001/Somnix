@@ -13,7 +13,9 @@ import { SideButtons } from '@/components/SideButtons';
 import { ReasonText } from '@/components/ReasonText';
 import { LandingPage } from '@/components/LandingPage';
 import { ShareCard } from '@/components/ShareCard';
+import { WalletModal } from '@/components/WalletModal';
 import { useSomnix } from '@/lib/useSomnix';
+import { getWindowDurationMs } from '@/lib/marketService';
 import {
   Shield,
   History,
@@ -31,6 +33,7 @@ export default function HomePage() {
   const router = useRouter();
   const {
     hasEnteredApp,
+    isViewingLanding,
     currentMarket,
     remainingSeconds,
     lockValidation,
@@ -43,20 +46,21 @@ export default function HomePage() {
 
   // If user already has an active lock that hasn't expired, route them to /locked
   useEffect(() => {
-    if (activeLock && activeLock.status === 'locked') {
+    if (activeLock && activeLock.status === 'locked' && !isViewingLanding) {
       if (Date.now() < activeLock.hidePriceUntil) {
         router.push('/locked');
       } else {
         router.push('/reveal');
       }
     }
-  }, [activeLock, router]);
+  }, [activeLock, router, isViewingLanding]);
 
-  // If user has not connected their wallet and is not in watch mode, show the Landing Page
-  if (!hasEnteredApp) {
+  // If user has not entered app or explicitly clicked Somnix logo to return to landing, show Landing Page
+  if (!hasEnteredApp || isViewingLanding) {
     return (
       <div className="w-full min-h-screen flex flex-col bg-transparent">
         <LandingPage />
+        <WalletModal />
       </div>
     );
   }
@@ -112,7 +116,7 @@ export default function HomePage() {
             {/* Countdown to Window End */}
             <Countdown
               remainingSeconds={remainingSeconds}
-              totalDurationSeconds={currentMarket.length === '15m' ? 900 : 3600}
+              totalDurationSeconds={getWindowDurationMs(currentMarket.length) / 1000}
             />
 
             {/* Odds Indicator Bar with 70% threshold warning */}
@@ -258,6 +262,9 @@ export default function HomePage() {
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
       />
+
+      {/* EVM Multi-Wallet Modal */}
+      <WalletModal />
     </div>
   );
 }

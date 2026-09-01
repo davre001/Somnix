@@ -24,7 +24,14 @@ import {
 interface SomnixContextType {
   wallet: WalletState;
   hasEnteredApp: boolean;
-  connectWallet: () => Promise<void>;
+  isViewingLanding: boolean;
+  goToLanding: () => void;
+  enterApp: () => void;
+  
+  isWalletModalOpen: boolean;
+  openWalletModal: () => void;
+  closeWalletModal: () => void;
+  connectWallet: (walletType?: string) => Promise<boolean>;
   disconnectWallet: () => void;
   toggleWatchMode: (val?: boolean) => void;
   enterAppInWatchMode: () => void;
@@ -62,9 +69,46 @@ const DEFAULT_WALLET: WalletState = {
   dailyBudgetSpent: 5.0,
 };
 
+const SOMNIA_HEX_CHAIN_ID = '0xc488'; // 50312
+
+async function requestSomniaNetwork(provider: any) {
+  if (!provider?.request) return;
+  try {
+    await provider.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: SOMNIA_HEX_CHAIN_ID }],
+    });
+  } catch (switchError: any) {
+    if (switchError?.code === 4902 || switchError?.data?.originalError?.code === 4902) {
+      try {
+        await provider.request({
+          method: 'wallet_addEthereumChain',
+          params: [
+            {
+              chainId: SOMNIA_HEX_CHAIN_ID,
+              chainName: 'Somnia Shannon Testnet',
+              nativeCurrency: {
+                name: 'Somnia Testnet Token',
+                symbol: 'STT',
+                decimals: 18,
+              },
+              rpcUrls: ['https://dream-rpc.somnia.network'],
+              blockExplorerUrls: ['https://shannon-explorer.somnia.network'],
+            },
+          ],
+        });
+      } catch (addError) {
+        console.warn('Could not auto-add Somnia Testnet:', addError);
+      }
+    }
+  }
+}
+
 export function SomnixProvider({ children }: { children: React.ReactNode }) {
   const [wallet, setWallet] = useState<WalletState>(DEFAULT_WALLET);
   const [isMounted, setIsMounted] = useState(false);
+  const [isViewingLanding, setIsViewingLanding] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [selectedPair, setSelectedPair] = useState<WindowPair>('BTC');
   const [selectedLength, setSelectedLength] = useState<WindowLength>('15m');
   const [selectedAmount, setSelectedAmount] = useState<number>(10);
@@ -152,8 +196,11 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
     if (!currentMarket.isLive) {
       return { canLock: false, reason: 'This window is not live yet' };
     }
-    if (remainingSeconds < 60) {
-      return { canLock: false, reason: 'Less than 60s left in this window. Wait for next.' };
+    
+    // Dynamic cutoff based on window length
+    const minCutoffSeconds = selectedLength === '1m' ? 10 : selectedLength === '3m' ? 20 : selectedLength === '5m' ? 30 : 60;
+    if (remainingSeconds < minCutoffSeconds) {
+      return { canLock: false, reason: `Less than ${minCutoffSeconds}s left in this window. Wait for next.` };
     }
     if (selectedAmount < currentMarket.minAmount) {
       return { canLock: false, reason: `Minimum amount is ${currentMarket.minAmount} STT` };
@@ -170,20 +217,65 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
     }
 
     return { canLock: true };
-  }, [wallet, currentMarket, remainingSeconds, selectedAmount, activeLock]);
+  }, [wallet, currentMarket, remainingSeconds, selectedAmount, activeLock, selectedLength]);
 
-  const connectWallet = useCallback(async () => {
+  const openWalletModal = useCallback(() => {
+    setIsWalletModalOpen(true);
+  }, []);
+
+  const closeWalletModal = useCallback(() => {
+    setIsWalletModalOpen(false);
+  }, []);
+
+  const goToLanding = useCallback(() => {
+    setIsViewingLanding(true);
+  }, []);
+
+  const enterApp = useCallback(() => {
+    setIsViewingLanding(false);
+  }, []);
+
+  const connectWallet = useCallback(async (walletType?: string): Promise<boolean> => {
     let chosenAddress = '0x8A92cE1f31F41029c7a52D1b7B5C35a64669f9Db';
+    let provider: any = null;
 
-    // Injected wallet check
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
+    if (typeof window !== 'undefined') {
+      const win = window as any;
+      if (walletType === 'coinbase' && win.coinbaseWalletExtension) {
+        provider = win.coinbaseWalletExtension;
+      } else if (walletType === 'okx' && win.okxwallet) {
+        provider = win.okxwallet;
+      } else if (walletType === 'phantom' && win.phantom?.ethereum) {
+        provider = win.phantom.ethereum;
+      } else if (walletType === 'trust' && win.trustwallet) {
+        provider = win.trustwallet;
+      } else if (win.ethereum) {
+        if (Array.isArray(win.ethereum.providers)) {
+          if (walletType === 'metamask') {
+            provider = win.ethereum.providers.find((p: any) => p.isMetaMask) || win.ethereum;
+          } else if (walletType === 'coinbase') {
+            provider = win.ethereum.providers.find((p: any) => p.isCoinbaseWallet) || win.ethereum;
+          } else {
+            provider = win.ethereum;
+          }
+        } else {
+          provider = win.ethereum;
+        }
+      }
+    }
+
+    if (provider) {
       try {
-        const accounts = await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await provider.request({ method: 'eth_requestAccounts' });
         if (accounts && accounts[0]) {
           chosenAddress = accounts[0];
         }
-      } catch (e) {
-        console.warn('Using demo Somnia Testnet wallet');
+        await requestSomniaNetwork(provider);
+      } catch (e: any) {
+        console.warn('Wallet connection fallback / warning:', e);
+        if (e?.code === 4001) {
+          throw new Error('Connection request was rejected in your wallet.');
+        }
       }
     }
 
@@ -195,12 +287,15 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
       dailyBudgetTotal: 20.0,
       dailyBudgetSpent: 5.0,
     });
+    setIsViewingLanding(false);
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('somnix_wallet_connected_v1', 'true');
       localStorage.setItem('somnix_wallet_address_v1', chosenAddress);
       localStorage.removeItem('somnix_watch_mode_v1');
     }
+
+    return true;
   }, []);
 
   const disconnectWallet = useCallback(() => {
@@ -226,6 +321,7 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
       dailyBudgetTotal: 20,
       dailyBudgetSpent: 0,
     });
+    setIsViewingLanding(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem('somnix_watch_mode_v1', 'true');
       localStorage.removeItem('somnix_wallet_connected_v1');
@@ -349,6 +445,12 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
       value={{
         wallet,
         hasEnteredApp,
+        isViewingLanding,
+        goToLanding,
+        enterApp,
+        isWalletModalOpen,
+        openWalletModal,
+        closeWalletModal,
         connectWallet,
         disconnectWallet,
         toggleWatchMode,

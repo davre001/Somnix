@@ -18,7 +18,8 @@ export function Countdown({
   const secs = remainingSeconds % 60;
   const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
-  const isEndingSoon = remainingSeconds < 60;
+  const warningThreshold = totalDurationSeconds <= 60 ? 10 : totalDurationSeconds <= 180 ? 20 : totalDurationSeconds <= 300 ? 30 : 60;
+  const isEndingSoon = remainingSeconds <= warningThreshold;
   const progressPct = Math.max(0, Math.min(100, (remainingSeconds / totalDurationSeconds) * 100));
 
   if (compact) {
@@ -45,7 +46,7 @@ export function Countdown({
         </span>
         {isEndingSoon && (
           <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded animate-pulse">
-            <AlertTriangle className="w-3 h-3" /> &lt;60s
+            <AlertTriangle className="w-3 h-3" /> &lt;{warningThreshold}s
           </span>
         )}
       </div>

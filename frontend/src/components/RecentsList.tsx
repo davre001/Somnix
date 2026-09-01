@@ -61,7 +61,7 @@ export function RecentsList() {
         <div className="p-5 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-1">
           <span className="text-[10px] font-mono text-zinc-500 uppercase block">Total Rounds</span>
           <div className="text-2xl font-black font-mono text-white">{stats.total}</div>
-          <span className="text-[11px] font-mono text-zinc-400">15m &amp; 1h Somnia Markets</span>
+          <span className="text-[11px] font-mono text-zinc-400">1m to 1h Somnia Markets</span>
         </div>
 
         <div className="p-5 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-1">

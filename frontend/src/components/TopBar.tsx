@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSomnix } from '@/lib/useSomnix';
 import { shortenAddress } from '@/lib/somnia';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
@@ -22,7 +22,18 @@ import {
 
 export function TopBar() {
   const pathname = usePathname();
-  const { wallet, connectWallet, disconnectWallet, toggleWatchMode, faucet, currentMarket } = useSomnix();
+  const router = useRouter();
+  const {
+    wallet,
+    openWalletModal,
+    disconnectWallet,
+    toggleWatchMode,
+    faucet,
+    currentMarket,
+    goToLanding,
+    enterApp,
+    isViewingLanding,
+  } = useSomnix();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [faucetSuccess, setFaucetSuccess] = useState(false);
@@ -69,7 +80,14 @@ export function TopBar() {
       >
         {/* Brand / Logo & Navigation */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <button
+            onClick={() => {
+              goToLanding();
+              router.push('/');
+            }}
+            className="flex items-center gap-2.5 group cursor-pointer text-left focus:outline-none"
+            aria-label="Return to Somnix Landing Page"
+          >
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-black text-black text-sm tracking-tighter shadow-md transition-transform duration-200 group-hover:scale-105">
               SX
             </div>
@@ -81,22 +99,26 @@ export function TopBar() {
                 Somnia
               </span>
             </div>
-          </Link>
+          </button>
 
           {/* Desktop Nav Links */}
           <nav className="hidden md:flex items-center gap-2 pl-4 border-l border-zinc-800">
-            <Link
-              href="/"
+            <button
+              onClick={() => {
+                enterApp();
+                router.push('/');
+              }}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold font-mono uppercase tracking-wider transition-colors ${
-                pathname === '/'
+                pathname === '/' && !isViewingLanding
                   ? 'bg-zinc-800 text-white'
                   : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
               }`}
             >
               This Window
-            </Link>
+            </button>
             <Link
               href="/recents"
+              onClick={() => enterApp()}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold font-mono uppercase tracking-wider transition-colors flex items-center gap-1.5 ${
                 pathname === '/recents'
                   ? 'bg-zinc-800 text-white'
@@ -170,7 +192,7 @@ export function TopBar() {
               </button>
             ) : (
               <LiquidMetalButton
-                onClick={connectWallet}
+                onClick={openWalletModal}
                 variant="silver"
                 height={38}
                 width={140}
@@ -252,7 +274,7 @@ export function TopBar() {
                 ) : (
                   <button
                     onClick={() => {
-                      connectWallet();
+                      openWalletModal();
                       setDropdownOpen(false);
                     }}
                     className="w-full py-2.5 rounded-xl bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-colors mt-2"
@@ -280,21 +302,27 @@ export function TopBar() {
         <div className="fixed top-16 right-0 bottom-0 left-0 z-50 bg-[#050507]/95 backdrop-blur-2xl flex flex-col justify-between p-6 border-t border-zinc-800 md:hidden animate-in fade-in zoom-in-95 duration-200">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Link
-                href="/"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold uppercase font-mono transition-colors ${
-                  pathname === '/'
+              <button
+                onClick={() => {
+                  enterApp();
+                  router.push('/');
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold uppercase font-mono transition-colors ${
+                  pathname === '/' && !isViewingLanding
                     ? 'bg-zinc-800 text-white'
                     : 'bg-zinc-900/60 text-zinc-400 hover:text-white'
                 }`}
               >
                 <span>This Window</span>
                 <span className="text-xs text-zinc-500 font-normal">Live</span>
-              </Link>
+              </button>
               <Link
                 href="/recents"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => {
+                  enterApp();
+                  setMobileMenuOpen(false);
+                }}
                 className={`flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold uppercase font-mono transition-colors ${
                   pathname === '/recents'
                     ? 'bg-zinc-800 text-white'
@@ -358,7 +386,7 @@ export function TopBar() {
               <div className="space-y-2">
                 <LiquidMetalButton
                   onClick={() => {
-                    connectWallet();
+                    openWalletModal();
                     setMobileMenuOpen(false);
                   }}
                   variant="silver"

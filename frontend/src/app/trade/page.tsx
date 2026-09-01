@@ -305,10 +305,11 @@ function TradeContent() {
               onClick={() => router.push(`/?pair=${trade.pair}&len=${trade.length}`)}
               variant="green"
               height={48}
+              fullWidth
               className="flex-1"
             >
-              <div className="flex items-center justify-center gap-2 text-xs font-black text-white uppercase tracking-wider">
-                <Sparkles className="w-4 h-4" />
+              <div className="flex items-center justify-center gap-2 text-xs font-black text-white uppercase tracking-wider whitespace-nowrap">
+                <Sparkles className="w-4 h-4 shrink-0" />
                 <span>Predict This Round</span>
               </div>
             </LiquidMetalButton>
@@ -323,7 +324,7 @@ function TradeContent() {
           <p className="text-xs text-zinc-400 font-mono leading-relaxed">
             Somnix is a zero-stress crypto prediction platform on Somnia. Choose whether Bitcoin or Ethereum finishes{' '}
             <strong className="text-emerald-400">Green (Up)</strong> or{' '}
-            <strong className="text-red-400">Red (Down)</strong> during 15m or 1h windows. No liquidation risk, no ticking charts after lock, and instant payouts via DreamDEX.
+            <strong className="text-red-400">Red (Down)</strong> during 1m, 3m, 5m, 15m, or 1h windows. No liquidation risk, no ticking charts after lock, and instant payouts via DreamDEX.
           </p>
           <div className="pt-1 flex items-center gap-4">
             <Link

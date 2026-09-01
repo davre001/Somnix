@@ -42,7 +42,7 @@ const somnixSlides: SqueezeSlide[] = [
   {
     id: 'predict',
     title: 'One decision. Green or Red.',
-    description: 'Pick whether BTC or ETH finishes up or down in a 15m or 1h window. Clean.',
+    description: 'Pick whether BTC or ETH finishes up or down in 1m, 3m, 5m, 15m, or 1h windows. Clean.',
     overlay: badge('Simple Call', 'text-white'),
     image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=900&auto=format&fit=crop&q=80',
     imageAlt: 'Cryptocurrency price chart on dark trading terminal',
@@ -68,7 +68,7 @@ const somnixSlides: SqueezeSlide[] = [
 
 
 export function LandingPage() {
-  const { connectWallet, enterAppInWatchMode } = useSomnix();
+  const { wallet, openWalletModal, enterAppInWatchMode, enterApp } = useSomnix();
 
   return (
     <div className="w-full flex-1 flex flex-col items-center justify-between">
@@ -88,29 +88,45 @@ export function LandingPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <LiquidMetalButton
-              onClick={enterAppInWatchMode}
-              height={38}
-              width={125}
-              className="hidden sm:inline-block"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-200">
-                <Eye className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Watch Mode</span>
-              </div>
-            </LiquidMetalButton>
+            {wallet.isConnected ? (
+              <LiquidMetalButton
+                onClick={enterApp}
+                variant="silver"
+                height={40}
+                width={150}
+              >
+                <div className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider">
+                  <span>Enter App</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </LiquidMetalButton>
+            ) : (
+              <>
+                <LiquidMetalButton
+                  onClick={enterAppInWatchMode}
+                  height={38}
+                  width={125}
+                  className="hidden sm:inline-block"
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-200">
+                    <Eye className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Watch Mode</span>
+                  </div>
+                </LiquidMetalButton>
 
-            <LiquidMetalButton
-              onClick={connectWallet}
-              variant="silver"
-              height={40}
-              width={150}
-            >
-              <div className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider">
-                <Wallet className="w-3.5 h-3.5" />
-                <span>Connect</span>
-              </div>
-            </LiquidMetalButton>
+                <LiquidMetalButton
+                  onClick={openWalletModal}
+                  variant="silver"
+                  height={40}
+                  width={150}
+                >
+                  <div className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider">
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span>Connect</span>
+                  </div>
+                </LiquidMetalButton>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -137,35 +153,51 @@ export function LandingPage() {
 
             {/* CTAs with Liquid Metal Shader Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto pt-2">
-              <LiquidMetalButton
-                onClick={connectWallet}
-                variant="silver"
-                height={54}
-                width={250}
-              >
-                <div className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider">
-                  <Wallet className="w-4 h-4" />
-                  <span>Connect Wallet to Trade</span>
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </LiquidMetalButton>
+              {wallet.isConnected ? (
+                <LiquidMetalButton
+                  onClick={enterApp}
+                  variant="silver"
+                  height={54}
+                  width={260}
+                >
+                  <div className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider">
+                    <span>Launch Trading App</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                </LiquidMetalButton>
+              ) : (
+                <>
+                  <LiquidMetalButton
+                    onClick={openWalletModal}
+                    variant="silver"
+                    height={54}
+                    width={250}
+                  >
+                    <div className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider">
+                      <Wallet className="w-4 h-4" />
+                      <span>Connect Wallet to Trade</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  </LiquidMetalButton>
 
-              <LiquidMetalButton
-                onClick={enterAppInWatchMode}
-                height={54}
-                width={210}
-              >
-                <div className="flex items-center gap-2 text-xs font-bold text-zinc-200 uppercase tracking-wider">
-                  <Eye className="w-4 h-4 text-zinc-400" />
-                  <span>Explore Watch Mode</span>
-                </div>
-              </LiquidMetalButton>
+                  <LiquidMetalButton
+                    onClick={enterAppInWatchMode}
+                    height={54}
+                    width={210}
+                  >
+                    <div className="flex items-center gap-2 text-xs font-bold text-zinc-200 uppercase tracking-wider">
+                      <Eye className="w-4 h-4 text-zinc-400" />
+                      <span>Explore Watch Mode</span>
+                    </div>
+                  </LiquidMetalButton>
+                </>
+              )}
             </div>
 
             {/* Micro stats banner */}
             <div className="flex items-center gap-6 pt-4 border-t border-zinc-800/80 text-xs font-mono text-zinc-400">
               <div>
-                <span className="text-white font-bold block text-sm">15m &amp; 1h</span>
+                <span className="text-white font-bold block text-sm">1m to 1h</span>
                 <span>Window Lengths</span>
               </div>
               <div className="h-6 w-px bg-zinc-800" />
