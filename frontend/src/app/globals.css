@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050507;
+  --foreground: #f4f4f5;
+  --card: #0d0d11;
+  --card-border: #1f1f24;
+  --card-hover: #16161b;
+  --accent-white: #ffffff;
+  --accent-zinc: #71717a;
+  --accent-green: #22c55e;
+  --accent-red: #ef4444;
+}
+
+@theme {
+  --font-space: var(--font-source-code-pro), monospace;
+  --color-bg-deep: #050507;
+  --color-card-dark: #0d0d11;
+  --color-card-border: #1f1f24;
+  --color-card-hover: #16161b;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  background-color: #050507;
+  color: #f4f4f5;
+  font-family: var(--font-source-code-pro), monospace;
+  letter-spacing: -0.05em;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Global noise grain overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 99999;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* Custom black & white scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050507;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Glowing pulse keyframes */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+@keyframes float-subtle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-float {
+  animation: float-subtle 4s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2.5s infinite;
+}
+
+/* Monochromatic noise background overlay */
+.bg-grid-pattern {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Stark brutalist / luxe card */
+.luxe-card {
+  background-color: #0d0d11;
+  border: 1px solid #1f1f24;
+  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.7);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.luxe-card:hover {
+  border-color: #323238;
+}
+
+.luxe-button-primary {
+  background-color: #ffffff;
+  color: #000000;
+  font-weight: 700;
+  transition: all 0.15s ease-out;
+}
+
+.luxe-button-primary:hover:not(:disabled) {
+  background-color: #e4e4e7;
+  transform: translateY(-1px);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
+}
+
+.luxe-button-primary:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+}
+
+.luxe-button-secondary {
+  background-color: #121216;
+  border: 1px solid #27272a;
+  color: #ffffff;
+  transition: all 0.15s ease-out;
+}
+
+.luxe-button-secondary:hover:not(:disabled) {
+  background-color: #1a1a20;
+  border-color: #3f3f46;
+}

@@ -1,6 +1,6 @@
 # Frontend implementation
 
-Somcall is a small Next.js app. Four screens. DreamDEX does the market. The UI does lock, hide, reveal, and claim.
+Somnix is a small Next.js app. Four screens. DreamDEX does the market. The UI does lock, hide, reveal, and claim.
 
 This file is for whoever builds the interface.
 
