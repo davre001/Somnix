@@ -171,41 +171,41 @@ export function WalletModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <div
         onClick={closeWalletModal}
-        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
       />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-lg rounded-3xl bg-[#0b0b10] border border-zinc-800 p-6 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.9)] z-10 space-y-6 animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg max-h-[92vh] flex flex-col rounded-2xl sm:rounded-3xl bg-[#0b0b10] border border-zinc-800 p-4 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.9)] z-10 space-y-4 sm:space-y-5 animate-in zoom-in-95 duration-200 overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
           <div>
-            <h3 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
               <span>Connect EVM Wallet</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 font-mono font-bold border border-emerald-800/60">
+              <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 font-mono font-bold border border-emerald-800/60">
                 Somnia Ready
               </span>
             </h3>
-            <p className="text-xs text-zinc-400 font-mono mt-0.5">
+            <p className="text-[11px] sm:text-xs text-zinc-400 font-mono mt-0.5">
               Choose your preferred Web3 provider to start trading
             </p>
           </div>
           <button
             onClick={closeWalletModal}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800/80 transition-colors"
+            className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800/80 transition-colors active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Network Notice */}
-        <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 text-zinc-300">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Target Network: <strong className="text-white">Somnia Shannon Testnet</strong> (50312)</span>
+        <div className="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 text-zinc-300 text-[11px] sm:text-xs">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Network: <strong className="text-white">Somnia Shannon Testnet</strong> (50312)</span>
           </div>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
             STT
@@ -214,14 +214,14 @@ export function WalletModal() {
 
         {/* Error Notification */}
         {errorMessage && (
-          <div className="p-3.5 rounded-2xl bg-red-950/40 border border-red-800/60 text-xs text-red-300 flex items-center gap-2">
+          <div className="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-red-950/40 border border-red-800/60 text-xs text-red-300 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
             <span className="line-clamp-2">{errorMessage}</span>
           </div>
         )}
 
         {/* Wallet Options List */}
-        <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-[280px] sm:max-h-[340px] overflow-y-auto pr-1">
           {WALLETS.map((wallet) => {
             const isInstalled = installedWallets[wallet.id] ?? false;
             const isConnecting = connectingId === wallet.id;
@@ -231,13 +231,13 @@ export function WalletModal() {
                 key={wallet.id}
                 onClick={() => handleSelectWallet(wallet)}
                 disabled={connectingId !== null}
-                className="w-full p-3.5 rounded-2xl bg-[#121218] hover:bg-[#181822] border border-zinc-800 hover:border-zinc-700 transition-all duration-150 flex items-center justify-between group text-left active:scale-[0.99] disabled:opacity-60"
+                className="w-full p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#121218] hover:bg-[#181822] border border-zinc-800 hover:border-zinc-700 transition-all duration-150 flex items-center justify-between group text-left active:scale-[0.99] disabled:opacity-60"
               >
-                <div className="flex items-center gap-3.5">
+                <div className="flex items-center gap-3 sm:gap-3.5">
                   {wallet.icon}
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-sm group-hover:text-emerald-300 transition-colors">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="font-bold text-white text-xs sm:text-sm group-hover:text-emerald-300 transition-colors">
                         {wallet.name}
                       </span>
                       {wallet.isPopular && (
@@ -256,7 +256,7 @@ export function WalletModal() {
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-zinc-400 font-mono">
+                    <p className="text-[10px] sm:text-[11px] text-zinc-400 font-mono">
                       {wallet.description}
                     </p>
                   </div>
@@ -277,10 +277,10 @@ export function WalletModal() {
         </div>
 
         {/* Footer info & Watch Mode fallback */}
-        <div className="pt-2 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="pt-2 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 text-xs">
           <button
             onClick={handleWatchMode}
-            className="text-zinc-400 hover:text-white transition-colors font-mono underline underline-offset-4"
+            className="text-zinc-400 hover:text-white transition-colors font-mono underline underline-offset-4 text-[11px] sm:text-xs"
           >
             Explore in Watch Mode (Read-Only)
           </button>
@@ -289,7 +289,7 @@ export function WalletModal() {
             href="https://testnet.somnia.network/"
             target="_blank"
             rel="noreferrer"
-            className="text-zinc-400 hover:text-emerald-400 transition-colors font-mono flex items-center gap-1"
+            className="text-zinc-400 hover:text-emerald-400 transition-colors font-mono flex items-center gap-1 text-[11px] sm:text-xs"
           >
             <span>Get Somnia Testnet STT</span>
             <ExternalLink className="w-3 h-3" />

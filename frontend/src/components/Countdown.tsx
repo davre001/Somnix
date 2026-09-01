@@ -32,7 +32,7 @@ export function Countdown({
   }
 
   return (
-    <div className="w-full flex flex-col items-center justify-center py-4 px-6 rounded-2xl bg-[#0c0c10] border border-zinc-800/80 shadow-md relative overflow-hidden group">
+    <div className="w-full flex flex-col items-center justify-center py-3.5 sm:py-4 px-4 sm:px-6 rounded-2xl bg-[#0c0c10] border border-zinc-800/80 shadow-md relative overflow-hidden group">
       {/* Background ambient subtle glow */}
       <div
         className={`absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-20 rounded-full blur-3xl pointer-events-none transition-opacity duration-500 ${
@@ -40,8 +40,8 @@ export function Countdown({
         }`}
       />
 
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-[11px] font-mono tracking-widest text-zinc-400 uppercase">
+      <div className="flex flex-wrap items-center justify-center gap-2 mb-1">
+        <span className="text-[10px] sm:text-[11px] font-mono tracking-widest text-zinc-400 uppercase">
           Time Remaining in Window
         </span>
         {isEndingSoon && (
@@ -53,7 +53,7 @@ export function Countdown({
 
       <div className="flex items-baseline gap-2">
         <span
-          className={`font-mono text-4xl sm:text-5xl font-black tracking-tight ${
+          className={`font-mono text-3xl xs:text-4xl sm:text-5xl font-black tracking-tight ${
             isEndingSoon ? 'text-amber-400 animate-pulse' : 'text-white'
           }`}
         >

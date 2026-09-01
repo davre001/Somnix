@@ -118,36 +118,36 @@ function TradeContent() {
       </header>
 
       {/* Main Trade Information Container */}
-      <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-10 flex-1 flex flex-col items-center space-y-8 animate-in fade-in zoom-in-95 duration-400">
+      <main className="w-full max-w-3xl mx-auto px-3.5 sm:px-6 py-6 sm:py-10 flex-1 flex flex-col items-center space-y-6 sm:space-y-8 animate-in fade-in zoom-in-95 duration-400">
         
         {/* Trade Status Pill Header */}
         <div className="flex flex-wrap items-center justify-center gap-2">
           {isLive ? (
-            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/40 text-xs font-mono text-emerald-400">
+            <div className="flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/40 text-xs font-mono text-emerald-400">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               <span className="font-bold uppercase tracking-wider">Live Active Trade</span>
               <span className="text-zinc-500">·</span>
               <span>Resolves in {timeLeft || '00:00'}</span>
             </div>
           ) : isWon ? (
-            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/50 text-xs font-mono text-emerald-400 shadow-[0_0_20px_rgba(34,197,94,0.2)]">
+            <div className="flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/50 text-xs font-mono text-emerald-400 shadow-[0_0_20px_rgba(34,197,94,0.2)]">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
               <span className="font-bold uppercase tracking-wider">Trade Settled · Won</span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/15 border border-red-500/50 text-xs font-mono text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+            <div className="flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-red-500/15 border border-red-500/50 text-xs font-mono text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
               <XCircle className="w-4 h-4 text-red-400" />
               <span className="font-bold uppercase tracking-wider">Trade Settled · Finished Opposite</span>
             </div>
           )}
 
-          <div className="px-3.5 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400">
+          <div className="px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400">
             {trade.pair} {trade.length} Window
           </div>
         </div>
 
         {/* Big Trade Card */}
-        <div className="w-full rounded-3xl bg-[#0c0c10] border border-zinc-800 p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+        <div className="w-full rounded-2xl sm:rounded-3xl bg-[#0c0c10] border border-zinc-800 p-4 sm:p-8 space-y-5 sm:space-y-6 shadow-2xl relative overflow-hidden">
           {/* Subtle glowing ambient backdrop */}
           <div
             className={`absolute top-0 right-0 w-80 h-80 rounded-full blur-[100px] pointer-events-none opacity-20 ${
@@ -156,33 +156,33 @@ function TradeContent() {
           />
 
           {/* Trade Main Call Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-800/80 relative">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 sm:pb-6 border-b border-zinc-800/80 relative">
             <div>
-              <span className="text-[11px] font-mono uppercase text-zinc-500 tracking-wider block mb-1">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase text-zinc-500 tracking-wider block mb-1">
                 Trader&apos;s Position
               </span>
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-lg ${
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-bold shadow-lg ${
                     isGreen
                       ? 'bg-emerald-500 text-black'
                       : 'bg-red-600 text-white'
                   }`}
                 >
                   {isGreen ? (
-                    <TrendingUp className="w-6 h-6 stroke-[2.5]" />
+                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
                   ) : (
-                    <TrendingDown className="w-6 h-6 stroke-[2.5]" />
+                    <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
                   )}
                 </div>
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
+                  <h2 className="text-xl xs:text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
                     {trade.pair} ·{' '}
                     <span className={isGreen ? 'text-emerald-400' : 'text-red-500'}>
                       {trade.side.toUpperCase()} ({isGreen ? 'UP' : 'DOWN'})
                     </span>
                   </h2>
-                  <p className="text-xs font-mono text-zinc-400">
+                  <p className="text-[11px] sm:text-xs font-mono text-zinc-400">
                     Locked on {formattedDate}
                   </p>
                 </div>
@@ -191,7 +191,7 @@ function TradeContent() {
 
             {/* Stake Box */}
             <div className="text-left sm:text-right bg-zinc-900/80 sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-0 border-zinc-800">
-              <span className="text-[11px] font-mono uppercase text-zinc-500 tracking-wider block">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase text-zinc-500 tracking-wider block">
                 Stake Amount
               </span>
               <span className="text-xl sm:text-2xl font-black text-white font-mono">
@@ -204,15 +204,15 @@ function TradeContent() {
           </div>
 
           {/* Price Reference & Settlement Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
-            <div className="p-4 rounded-2xl bg-black/60 border border-zinc-800/80 space-y-1">
-              <span className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider block">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 relative">
+            <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80 space-y-1">
+              <span className="text-[10px] sm:text-[11px] font-mono text-zinc-500 uppercase tracking-wider block">
                 Start Reference Price
               </span>
-              <span className="font-bold text-lg sm:text-xl text-white font-mono">
+              <span className="font-bold text-base sm:text-xl text-white font-mono">
                 ${trade.startPrice.toLocaleString()}
               </span>
-              <p className="text-[11px] font-mono text-zinc-400">
+              <p className="text-[10px] sm:text-[11px] font-mono text-zinc-400">
                 Baseline price recorded at round lock
               </p>
             </div>

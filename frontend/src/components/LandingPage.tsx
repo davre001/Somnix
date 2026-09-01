@@ -132,11 +132,11 @@ export function LandingPage() {
       </header>
 
       {/* Main Hero Section */}
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 flex-1 flex flex-col justify-center space-y-16">
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-14 flex-1 flex flex-col justify-center space-y-12 sm:space-y-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
           {/* Left Column */}
-          <div className="lg:col-span-7 flex flex-col items-start text-left space-y-6">
-            <h1 className="text-5xl sm:text-6xl lg:text-6xl font-black text-white uppercase leading-[1.0]" style={{ letterSpacing: '-0.05em' }}>
+          <div className="lg:col-span-7 flex flex-col items-start text-left space-y-5 sm:space-y-6">
+            <h1 className="text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-black text-white uppercase leading-[1.08] sm:leading-[1.05]" style={{ letterSpacing: '-0.04em' }}>
               Predict the market. <br />
               <span className="text-emerald-400">Green</span>{' '}
               <span className="text-white">or</span>{' '}
@@ -145,7 +145,7 @@ export function LandingPage() {
               Zero chart stress.
             </h1>
 
-            <p className="text-base sm:text-lg text-zinc-400 max-w-xl font-normal leading-relaxed">
+            <p className="text-sm sm:text-base lg:text-lg text-zinc-400 max-w-xl font-normal leading-relaxed">
               Simple crypto event predictions on Somnia. Choose whether Bitcoin or Ethereum finishes{' '}
               <strong className="text-emerald-400 font-bold">Green (Up)</strong> or{' '}
               <strong className="text-red-400 font-bold">Red (Down)</strong>. Lock your call, put your phone down, and claim your winnings when the window ends.
@@ -160,9 +160,9 @@ export function LandingPage() {
                   height={54}
                   width={260}
                 >
-                  <div className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider">
+                  <div className="flex items-center justify-center gap-2 text-xs font-black text-black uppercase tracking-wider whitespace-nowrap px-4">
                     <span>Launch Trading App</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 shrink-0" />
                   </div>
                 </LiquidMetalButton>
               ) : (
@@ -171,22 +171,22 @@ export function LandingPage() {
                     onClick={openWalletModal}
                     variant="silver"
                     height={54}
-                    width={250}
+                    width={290}
                   >
-                    <div className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider">
-                      <Wallet className="w-4 h-4" />
+                    <div className="flex items-center justify-center gap-2 text-xs font-black text-black uppercase tracking-wider whitespace-nowrap px-4">
+                      <Wallet className="w-4 h-4 shrink-0" />
                       <span>Connect Wallet to Trade</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4 shrink-0" />
                     </div>
                   </LiquidMetalButton>
 
                   <LiquidMetalButton
                     onClick={enterAppInWatchMode}
                     height={54}
-                    width={210}
+                    width={220}
                   >
-                    <div className="flex items-center gap-2 text-xs font-bold text-zinc-200 uppercase tracking-wider">
-                      <Eye className="w-4 h-4 text-zinc-400" />
+                    <div className="flex items-center justify-center gap-2 text-xs font-bold text-zinc-200 uppercase tracking-wider whitespace-nowrap px-4">
+                      <Eye className="w-4 h-4 text-zinc-400 shrink-0" />
                       <span>Explore Watch Mode</span>
                     </div>
                   </LiquidMetalButton>
@@ -195,34 +195,34 @@ export function LandingPage() {
             </div>
 
             {/* Micro stats banner */}
-            <div className="flex items-center gap-6 pt-4 border-t border-zinc-800/80 text-xs font-mono text-zinc-400">
+            <div className="w-full sm:w-auto grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-6 pt-3 sm:pt-4 border-t border-zinc-800/80 text-xs font-mono text-zinc-400 text-center sm:text-left bg-zinc-950/60 p-3 sm:p-0 rounded-2xl sm:bg-transparent border sm:border-0 border-zinc-800/60">
               <div>
-                <span className="text-white font-bold block text-sm">1m to 1h</span>
-                <span>Window Lengths</span>
+                <span className="text-white font-bold block text-sm">1m - 1h</span>
+                <span className="text-[10px] sm:text-xs text-zinc-500">Windows</span>
               </div>
-              <div className="h-6 w-px bg-zinc-800" />
+              <div className="hidden sm:block h-6 w-px bg-zinc-800" />
               <div>
                 <span className="text-white font-bold block text-sm">Hard Cap</span>
-                <span>Max Loss = Stake</span>
+                <span className="text-[10px] sm:text-xs text-zinc-500">Max Loss = Stake</span>
               </div>
-              <div className="h-6 w-px bg-zinc-800" />
+              <div className="hidden sm:block h-6 w-px bg-zinc-800" />
               <div>
                 <span className="text-white font-bold block text-sm">&lt; 1s</span>
-                <span>Somnia Finality</span>
+                <span className="text-[10px] sm:text-xs text-zinc-500">Finality</span>
               </div>
             </div>
           </div>
 
           {/* Right Column: Squeeze Carousel */}
-          <div className="lg:col-span-5 w-full self-stretch flex items-stretch">
+          <div className="lg:col-span-5 w-full self-stretch flex items-stretch min-h-[300px] sm:min-h-[380px]">
             <SqueezeCarousel
               slides={somnixSlides}
               label="Somnix Features"
-              height={420}
-              radius={12}
+              height="clamp(300px, 45vw, 420px)"
+              radius={16}
               gap={10}
-              slatWidth={20}
-              slatGap={8}
+              slatWidth={16}
+              slatGap={6}
               duration={900}
               autoplay
               interval={5000}
@@ -237,32 +237,32 @@ export function LandingPage() {
         </div>
 
         {/* 3 Pillar Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-          <div className="p-6 rounded-3xl bg-[#0c0c10] border border-zinc-800/80 hover:border-zinc-600 transition-all duration-200 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center font-bold border border-zinc-800">
-              <EyeOff className="w-5 h-5" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 pt-4">
+          <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#0c0c10] border border-zinc-800/80 hover:border-zinc-600 transition-all duration-200 space-y-2.5 sm:space-y-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center font-bold border border-zinc-800">
+              <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <h3 className="text-base font-bold text-white">Zen Lock &amp; Reveal</h3>
+            <h3 className="text-sm sm:text-base font-bold text-white">Zen Lock &amp; Reveal</h3>
             <p className="text-xs text-zinc-400 leading-relaxed">
               No ticking chart or order book ladder after you lock. Put your phone down. We calculate the result at 0:00.
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-[#0c0c10] border border-zinc-800/80 hover:border-zinc-600 transition-all duration-200 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center font-bold border border-zinc-800">
-              <ShieldCheck className="w-5 h-5" />
+          <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#0c0c10] border border-zinc-800/80 hover:border-zinc-600 transition-all duration-200 space-y-2.5 sm:space-y-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center font-bold border border-zinc-800">
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <h3 className="text-base font-bold text-white">Hard Cap &amp; Day Budget</h3>
+            <h3 className="text-sm sm:text-base font-bold text-white">Hard Cap &amp; Day Budget</h3>
             <p className="text-xs text-zinc-400 leading-relaxed">
               You can only lose what you choose. Built-in daily budget cap prevents over-trading and chasing losses.
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-[#0c0c10] border border-zinc-800/80 hover:border-zinc-600 transition-all duration-200 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center font-bold border border-zinc-800">
-              <Zap className="w-5 h-5 text-emerald-400" />
+          <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#0c0c10] border border-zinc-800/80 hover:border-zinc-600 transition-all duration-200 space-y-2.5 sm:space-y-3 sm:col-span-2 md:col-span-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center font-bold border border-zinc-800">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
             </div>
-            <h3 className="text-base font-bold text-white">DreamDEX on Somnia</h3>
+            <h3 className="text-sm sm:text-base font-bold text-white">DreamDEX on Somnia</h3>
             <p className="text-xs text-zinc-400 leading-relaxed">
               Direct integration with Somnia Shannon Testnet Event Contracts for instant settlements and fair payout rules.
             </p>

@@ -54,7 +54,7 @@ export function LiveCryptoChart({
       )}
     >
       {/* Minimalist Top Indicator Header */}
-      <div className="flex items-center justify-between px-2 pb-2.5 mb-1 border-b border-zinc-800/60">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 px-1.5 sm:px-2 pb-2.5 mb-1 border-b border-zinc-800/60">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="font-black text-white text-xs tracking-wider uppercase font-mono">
@@ -62,15 +62,14 @@ export function LiveCryptoChart({
           </span>
         </div>
 
-        <span className="text-[11px] font-mono text-zinc-500 uppercase">
+        <span className="text-[10px] sm:text-[11px] font-mono text-zinc-500 uppercase">
           {title || `${length.toUpperCase()} Candlesticks`}
         </span>
       </div>
 
-      {/* Pure Uncluttered Chart Container */}
+      {/* Pure Uncluttered Responsive Chart Container */}
       <div
-        className="w-full rounded-2xl overflow-hidden relative bg-[#07070a]"
-        style={{ height: height }}
+        className="w-full h-[320px] sm:h-[440px] rounded-2xl overflow-hidden relative bg-[#07070a]"
       >
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#07070a] z-10">

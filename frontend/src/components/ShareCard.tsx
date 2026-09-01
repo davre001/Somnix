@@ -51,12 +51,12 @@ export function ShareCard({
   const isGreen = side === 'green';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-sm rounded-3xl bg-[#0e0e13] border border-zinc-800 p-6 shadow-2xl space-y-5 relative">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-sm rounded-2xl sm:rounded-3xl bg-[#0e0e13] border border-zinc-800 p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 relative">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 transition-colors"
+          className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 p-1.5 rounded-full bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 transition-colors active:scale-95"
         >
           <X className="w-4 h-4" />
         </button>

@@ -132,8 +132,8 @@ export function TopBar() {
         </div>
 
         {/* Right side Actions */}
-        <div className="flex items-center gap-3">
-          {/* Day budget indicator (if connected) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Day budget indicator (if connected on desktop) */}
           {wallet.isConnected && (
             <div className="hidden lg:flex items-center gap-1.5 py-1 px-3 rounded-full bg-[#0c0c10] border border-zinc-800 text-xs font-mono">
               <Shield className="w-3.5 h-3.5 text-zinc-400" />
@@ -144,7 +144,7 @@ export function TopBar() {
             </div>
           )}
 
-          {/* Faucet Liquid Metal button */}
+          {/* Faucet Liquid Metal button on desktop/tablet */}
           {wallet.isConnected && (
             <div className="hidden sm:block">
               <LiquidMetalButton
@@ -170,7 +170,7 @@ export function TopBar() {
             </div>
           )}
 
-          {/* Wallet / Watch Mode Dropdown Button */}
+          {/* Desktop Wallet / Watch Mode Dropdown Button */}
           <div className="relative hidden sm:block">
             {wallet.isConnected ? (
               <button
@@ -286,10 +286,38 @@ export function TopBar() {
             )}
           </div>
 
+          {/* Mobile Quick Status Pill (visible on small screens) */}
+          <div className="flex sm:hidden items-center gap-1.5">
+            {wallet.isConnected ? (
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex items-center gap-1.5 py-1.5 px-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-200 active:scale-95 transition-transform"
+              >
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-bold">{wallet.balance.toFixed(0)} STT</span>
+              </button>
+            ) : wallet.isWatchMode ? (
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex items-center gap-1 py-1.5 px-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-[10px] font-mono text-zinc-400"
+              >
+                <Eye className="w-3 h-3 text-zinc-400" />
+                <span>Watch</span>
+              </button>
+            ) : (
+              <button
+                onClick={openWalletModal}
+                className="py-1.5 px-3 rounded-xl bg-white text-black font-black text-xs uppercase tracking-tight shadow-sm active:scale-95 transition-transform"
+              >
+                Connect
+              </button>
+            )}
+          </div>
+
           {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition-colors"
+            className="md:hidden p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition-colors active:scale-95"
             aria-label="Toggle Navigation Menu"
           >
             <MenuToggleIcon open={mobileMenuOpen} className="w-5 h-5" duration={300} />
@@ -299,7 +327,7 @@ export function TopBar() {
 
       {/* Mobile Slide-Down Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="fixed top-16 right-0 bottom-0 left-0 z-50 bg-[#050507]/95 backdrop-blur-2xl flex flex-col justify-between p-6 border-t border-zinc-800 md:hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed top-16 right-0 bottom-0 left-0 z-50 bg-[#050507]/98 backdrop-blur-2xl flex flex-col justify-between p-5 border-t border-zinc-800 md:hidden animate-in fade-in zoom-in-95 duration-200 overflow-y-auto">
           <div className="space-y-4">
             <div className="space-y-2">
               <button
@@ -310,8 +338,8 @@ export function TopBar() {
                 }}
                 className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold uppercase font-mono transition-colors ${
                   pathname === '/' && !isViewingLanding
-                    ? 'bg-zinc-800 text-white'
-                    : 'bg-zinc-900/60 text-zinc-400 hover:text-white'
+                    ? 'bg-zinc-800 text-white border border-zinc-700'
+                    : 'bg-zinc-900/60 text-zinc-400 hover:text-white border border-zinc-800/60'
                 }`}
               >
                 <span>This Window</span>
@@ -325,8 +353,8 @@ export function TopBar() {
                 }}
                 className={`flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold uppercase font-mono transition-colors ${
                   pathname === '/recents'
-                    ? 'bg-zinc-800 text-white'
-                    : 'bg-zinc-900/60 text-zinc-400 hover:text-white'
+                    ? 'bg-zinc-800 text-white border border-zinc-700'
+                    : 'bg-zinc-900/60 text-zinc-400 hover:text-white border border-zinc-800/60'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -337,15 +365,15 @@ export function TopBar() {
               </Link>
             </div>
 
-            {/* Mobile Market Overview Card */}
-            <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-2 text-xs font-mono">
-              <div className="flex justify-between text-zinc-400">
-                <span>Current Market</span>
-                <span className="font-bold text-white">
+            {/* Mobile Market & Budget Overview Card */}
+            <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-3 text-xs font-mono">
+              <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
+                <span className="text-zinc-400">Current Market</span>
+                <span className="font-bold text-white bg-black/60 px-2 py-0.5 rounded border border-zinc-800">
                   {currentMarket.pair} · {currentMarket.length}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-emerald-400 font-bold">
                   Green {currentMarket.greenOdds}%
                 </span>
@@ -353,34 +381,80 @@ export function TopBar() {
                   Red {currentMarket.redOdds}%
                 </span>
               </div>
+
+              {wallet.isConnected && (
+                <div className="pt-2 border-t border-zinc-800/80 space-y-1">
+                  <div className="flex justify-between text-[11px] text-zinc-400">
+                    <span>Daily Budget Left</span>
+                    <span className="text-white font-bold">
+                      {budgetLeft.toFixed(0)} / {wallet.dailyBudgetTotal} STT
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 bg-black rounded-full overflow-hidden border border-zinc-800">
+                    <div
+                      className="h-full bg-white rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          (wallet.dailyBudgetSpent / wallet.dailyBudgetTotal) * 100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="space-y-3 pt-6 border-t border-zinc-800">
+          <div className="space-y-3 pt-4 border-t border-zinc-800">
             {wallet.isConnected ? (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between text-xs font-mono text-zinc-400 px-1">
-                  <span>Connected:</span>
-                  <span className="text-white font-bold">{shortenAddress(wallet.address)}</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>{shortenAddress(wallet.address)}</span>
+                  </div>
+                  <span className="text-white font-bold font-mono">{wallet.balance.toFixed(2)} STT</span>
                 </div>
+
                 <button
-                  onClick={() => {
-                    handleFaucet();
-                  }}
-                  className="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-700 text-white font-mono text-xs flex items-center justify-center gap-2"
+                  onClick={handleFaucet}
+                  className="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-700 text-white font-mono text-xs flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                 >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>Get 25 STT Faucet</span>
+                  {faucetSuccess ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      <span className="text-emerald-400 font-bold">+25 STT Added!</span>
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle className="w-4 h-4 text-zinc-300" />
+                      <span>Get 25 STT (Testnet Faucet)</span>
+                    </>
+                  )}
                 </button>
-                <button
-                  onClick={() => {
-                    disconnectWallet();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full py-3 rounded-2xl bg-red-950/60 border border-red-800 text-red-400 font-bold text-xs"
-                >
-                  Disconnect
-                </button>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      toggleWatchMode();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono text-xs font-bold"
+                  >
+                    Watch Mode
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      disconnectWallet();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="py-2.5 rounded-xl bg-red-950/60 border border-red-800/80 text-red-400 font-mono text-xs font-bold"
+                  >
+                    Disconnect
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
@@ -404,7 +478,7 @@ export function TopBar() {
                     toggleWatchMode();
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-300 font-bold text-xs uppercase"
+                  className="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-300 font-bold text-xs uppercase tracking-wider"
                 >
                   {wallet.isWatchMode ? 'Exit Watch Mode' : 'Explore in Watch Mode'}
                 </button>

@@ -78,32 +78,32 @@ export default function HomePage() {
       {/* Top Full-Width Navigation Bar */}
       <TopBar />
 
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex-1">
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 lg:py-8 flex-1">
         {/* Page Title & Breadcrumb */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase flex items-center gap-2.5">
+            <h1 className="text-xl xs:text-2xl sm:text-3xl font-black tracking-tight text-white uppercase flex flex-wrap items-center gap-2">
               <span>This Window</span>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-300 font-mono">
                 {currentMarket.pair} · {currentMarket.length}
               </span>
             </h1>
-            <p className="text-xs font-mono text-zinc-400 mt-0.5">
+            <p className="text-xs font-mono text-zinc-400 mt-1">
               Lock your call for this round. Live prices disappear after confirmation.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
             <button
               onClick={() => setShareModalOpen(true)}
-              className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono text-zinc-300 hover:text-white transition-colors"
+              className="flex items-center justify-center gap-1.5 py-2.5 sm:py-2 px-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono text-zinc-300 hover:text-white transition-colors active:scale-95"
             >
               <Share2 className="w-3.5 h-3.5" />
               <span>Share Card</span>
             </button>
             <Link
               href="/recents"
-              className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono text-zinc-300 hover:text-white transition-colors"
+              className="flex items-center justify-center gap-1.5 py-2.5 sm:py-2 px-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono text-zinc-300 hover:text-white transition-colors active:scale-95"
             >
               <History className="w-3.5 h-3.5" />
               <span>Round History</span>
@@ -112,7 +112,7 @@ export default function HomePage() {
         </div>
 
         {/* 2-Column Responsive Dashboard Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 lg:gap-8 items-start">
           {/* Main Action Stage (8 Columns) */}
           <div className="lg:col-span-8 space-y-4">
             {/* Pair & Length Switcher */}
