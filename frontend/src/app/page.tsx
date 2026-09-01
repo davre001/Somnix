@@ -124,17 +124,17 @@ export default function HomePage() {
               totalDurationSeconds={getWindowDurationMs(currentMarket.length) / 1000}
             />
 
-            {/* Odds Indicator Bar with 70% threshold warning */}
-            <OddsBar
-              greenOdds={currentMarket.greenOdds}
-              redOdds={currentMarket.redOdds}
-            />
-
             {/* Pure Live Real-Time BTC / ETH Chart */}
             <LiveCryptoChart
               pair={selectedPair}
               length={selectedLength}
               height={440}
+            />
+
+            {/* Odds Indicator Bar with 70% threshold warning */}
+            <OddsBar
+              greenOdds={currentMarket.greenOdds}
+              redOdds={currentMarket.redOdds}
             />
 
             {/* Amount Selector Chips */}

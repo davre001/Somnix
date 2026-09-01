@@ -270,11 +270,136 @@ export function LandingPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full border-t border-zinc-800/80 py-6 text-center text-xs font-mono text-zinc-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span>SOMNIX · Built for Somnia × DreamDEX Event Contracts</span>
-          <span>Somnia Shannon Testnet · Chain ID: 50312</span>
+      {/* Rich Multi-Column Modern Footer */}
+      <footer className="w-full border-t border-zinc-800/80 bg-[#07070a] pt-14 pb-10 mt-16 text-zinc-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          {/* Main Footer Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
+            {/* Brand & Mission Column (2 Columns wide) */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white text-black font-black text-sm flex items-center justify-center tracking-tighter shadow-md">
+                  SX
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-lg tracking-tight text-white uppercase">SOMNIX</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 font-mono font-medium tracking-wider uppercase border border-zinc-700">
+                    Somnia
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-zinc-400 max-w-sm leading-relaxed">
+                The zero-stress binary market prediction engine built on Somnia Shannon Testnet. 
+                Predict Green or Red, lock your call, and let DreamDEX smart contracts handle guaranteed settlement.
+              </p>
+
+              <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 w-fit px-3 py-1.5 rounded-full">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Somnia Shannon Testnet · Operational</span>
+              </div>
+            </div>
+
+            {/* Markets Column */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                Prediction Markets
+              </h4>
+              <ul className="space-y-2 text-xs font-mono">
+                <li>
+                  <button onClick={enterApp} className="hover:text-white transition-colors text-left">
+                    BTC / USD (1m - 1h)
+                  </button>
+                </li>
+                <li>
+                  <button onClick={enterApp} className="hover:text-white transition-colors text-left">
+                    ETH / USD (1m - 1h)
+                  </button>
+                </li>
+                <li>
+                  <button onClick={enterAppInWatchMode} className="hover:text-white transition-colors text-left">
+                    Live Watch Mode
+                  </button>
+                </li>
+                <li>
+                  <span className="text-zinc-600">SOL / USD (Coming Soon)</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Network & Ecosystem Column */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                Network &amp; DEX
+              </h4>
+              <ul className="space-y-2 text-xs font-mono">
+                <li>
+                  <a
+                    href="https://shannon-explorer.somnia.network"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors flex items-center gap-1.5"
+                  >
+                    <span>Shannon Explorer</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://testnet.somnia.network"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
+                    Somnia Testnet Portal
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://testnet.somnia.network/faucet"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
+                    Official STT Faucet
+                  </a>
+                </li>
+                <li>
+                  <span className="text-zinc-500">Chain ID: 50312</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Security & Rules Column */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                Discipline &amp; Safety
+              </h4>
+              <ul className="space-y-2 text-xs font-mono">
+                <li>
+                  <span className="text-zinc-300">Daily Budget Caps</span>
+                </li>
+                <li>
+                  <span className="text-zinc-300">Hard Cap Loss Guarantee</span>
+                </li>
+                <li>
+                  <span className="text-zinc-300">Zen Lock Timers</span>
+                </li>
+                <li>
+                  <span className="text-zinc-300">~1.92x Binary Multiplier</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom Copyright & Disclaimer */}
+          <div className="pt-8 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-zinc-500">
+            <div>
+              © 2026 SOMNIX. Built for Somnia × DreamDEX Event Contracts.
+            </div>
+            <div className="text-center sm:text-right text-zinc-500 text-[10px]">
+              No financial advice. Smart contracts deployed on Somnia Testnet.
+            </div>
+          </div>
         </div>
       </footer>
     </div>
