@@ -14,6 +14,7 @@ import { ReasonText } from '@/components/ReasonText';
 import { LandingPage } from '@/components/LandingPage';
 import { ShareCard } from '@/components/ShareCard';
 import { WalletModal } from '@/components/WalletModal';
+import { LiveCryptoChart } from '@/components/LiveCryptoChart';
 import { useSomnix } from '@/lib/useSomnix';
 import { getWindowDurationMs } from '@/lib/marketService';
 import {
@@ -34,6 +35,10 @@ export default function HomePage() {
   const {
     hasEnteredApp,
     isViewingLanding,
+    selectedPair,
+    setSelectedPair,
+    selectedLength,
+    setSelectedLength,
     currentMarket,
     remainingSeconds,
     lockValidation,
@@ -123,6 +128,13 @@ export default function HomePage() {
             <OddsBar
               greenOdds={currentMarket.greenOdds}
               redOdds={currentMarket.redOdds}
+            />
+
+            {/* Pure Live Real-Time BTC / ETH Chart */}
+            <LiveCryptoChart
+              pair={selectedPair}
+              length={selectedLength}
+              height={440}
             />
 
             {/* Amount Selector Chips */}

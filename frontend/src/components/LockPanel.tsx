@@ -8,6 +8,7 @@ import { Shield, EyeOff, History, Moon, ArrowRight, Copy, Check, Share2 } from '
 import { generateTradeShareUrl, userLockToSharedTrade } from '@/lib/tradeShare';
 import { ShareCard } from '@/components/ShareCard';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
+import { LiveCryptoChart } from '@/components/LiveCryptoChart';
 
 export function LockPanel() {
   const router = useRouter();
@@ -65,7 +66,7 @@ export function LockPanel() {
       {/* Zen Header Badge */}
       <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-900/90 border border-zinc-800 text-xs font-mono text-zinc-300 shadow-sm">
         <Moon className="w-4 h-4 text-zinc-400" />
-        <span>Zen State · Live Price Hidden Until Expiry</span>
+        <span>Live Position · Real-Time Window Countdown</span>
       </div>
 
       {/* Main Lock Confirmation Header */}
@@ -102,9 +103,19 @@ export function LockPanel() {
             {formattedTime}
           </span>
           <span className="text-xs font-mono text-zinc-400 mt-3 flex items-center gap-1.5 bg-black/60 px-3 py-1 rounded-full border border-zinc-800">
-            <EyeOff className="w-3.5 h-3.5" /> No ticking charts
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live Market Tracking
           </span>
         </div>
+      </div>
+
+      {/* Pure Live Real-Time Market Chart for Traded Pair */}
+      <div className="w-full max-w-3xl text-left">
+        <LiveCryptoChart
+          pair={activeLock.pair}
+          length={activeLock.length}
+          height={420}
+          title={`Round Expiry at 00:00`}
+        />
       </div>
 
       {/* Reassurance Grid */}
