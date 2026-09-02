@@ -10,7 +10,7 @@ lockRouter.get("/health", (_req, res) => {
 });
 
 lockRouter.post("/", async (req, res) => {
-  const { marketId, pair, length, side, amount, walletAddress } = req.body ?? {};
+  const { marketId, pair, length, side, amount, walletAddress, startPrice, hidePriceUntil, payout, txHash } = req.body ?? {};
 
   if (!marketId || typeof marketId !== "string") {
     return res.status(400).json({ ok: false, error: "marketId is required" });
@@ -33,8 +33,35 @@ lockRouter.post("/", async (req, res) => {
     return res.status(400).json({ ok: false, error: "amount must be a positive number" });
   }
 
+  const normalizedStartPrice = parsePositiveNumber(startPrice);
+  if (normalizedStartPrice === null) {
+    return res.status(400).json({ ok: false, error: "startPrice must be a positive number" });
+  }
+
+  const normalizedExpiry = parsePositiveNumber(hidePriceUntil);
+  if (normalizedExpiry === null) {
+    return res.status(400).json({ ok: false, error: "hidePriceUntil must be a positive timestamp" });
+  }
+
+  const normalizedPayout = parsePositiveNumber(payout);
+  if (normalizedPayout === null) {
+    return res.status(400).json({ ok: false, error: "payout must be a positive number" });
+  }
+
   const normalizedWallet = validateWalletAddress(walletAddress);
-  const lock = createLockRecord(marketId, pair, length, side, normalizedAmount, normalizedWallet);
+  const normalizedTxHash = typeof txHash === "string" && txHash.trim().length > 0 ? txHash.trim() : undefined;
+  const lock = createLockRecord(
+    marketId,
+    pair,
+    length,
+    side,
+    normalizedAmount,
+    normalizedWallet,
+    normalizedStartPrice,
+    normalizedExpiry,
+    normalizedPayout,
+    normalizedTxHash,
+  );
   await sqliteStore.saveLock(lock);
 
   return res.status(201).json({ ok: true, data: lock });

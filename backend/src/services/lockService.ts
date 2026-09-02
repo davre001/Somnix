@@ -7,6 +7,10 @@ export function createLockRecord(
   side: MarketSide,
   amount: number,
   walletAddress: string | null,
+  startPrice: number,
+  hidePriceUntil: number,
+  payout: number,
+  txHash?: string,
 ): LockRecord {
   const lockId = `lock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -19,9 +23,10 @@ export function createLockRecord(
     amount: Number(amount.toFixed(2)),
     walletAddress,
     lockedAt: Date.now(),
-    hidePriceUntil: Date.now() + 60_000,
+    hidePriceUntil,
     status: "locked",
-    payout: Number((amount * 1.92).toFixed(2)),
-    startPrice: 0,
+    payout: Number(payout.toFixed(2)),
+    startPrice,
+    ...(txHash ? { txHash } : {}),
   };
 }

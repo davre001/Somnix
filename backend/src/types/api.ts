@@ -22,6 +22,13 @@ export interface MarketTradeRequest {
   walletAddress?: string;
 }
 
+export interface LockRequest extends MarketTradeRequest {
+  startPrice: number;
+  hidePriceUntil: number;
+  payout: number;
+  txHash?: string;
+}
+
 export interface LockRecord {
   id: string;
   marketId: string;
