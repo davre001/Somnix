@@ -1,21 +1,21 @@
 import type { ClaimRecord, LockRecord, TradeSnapshot } from "../types/api.js";
 
 export interface LockRepository {
-  saveLock(lock: LockRecord): LockRecord;
-  getLock(id: string): LockRecord | undefined;
-  listLocks(): LockRecord[];
+  saveLock(lock: LockRecord): Promise<LockRecord>;
+  getLock(id: string): Promise<LockRecord | undefined>;
+  listLocks(): Promise<LockRecord[]>;
 }
 
 export interface TradeRepository {
-  saveTrade(trade: TradeSnapshot): TradeSnapshot;
-  getTrade(key: string): TradeSnapshot | undefined;
-  listTrades(): TradeSnapshot[];
+  saveTrade(trade: TradeSnapshot): Promise<TradeSnapshot>;
+  getTrade(key: string): Promise<TradeSnapshot | undefined>;
+  listTrades(): Promise<TradeSnapshot[]>;
 }
 
 export interface ClaimRepository {
-  saveClaim(claim: ClaimRecord): ClaimRecord;
-  getClaim(lockId: string): ClaimRecord | undefined;
-  listClaims(): ClaimRecord[];
+  saveClaim(claim: ClaimRecord): Promise<ClaimRecord>;
+  getClaim(lockId: string): Promise<ClaimRecord | undefined>;
+  listClaims(): Promise<ClaimRecord[]>;
 }
 
 export interface PersistenceStore extends LockRepository, TradeRepository, ClaimRepository {}

@@ -4,16 +4,16 @@ import type { PersistenceStore } from "./interfaces.js";
 class MemoryLockRepository {
   private locks = new Map<string, LockRecord>();
 
-  saveLock(lock: LockRecord): LockRecord {
+  async saveLock(lock: LockRecord): Promise<LockRecord> {
     this.locks.set(lock.id, lock);
     return lock;
   }
 
-  getLock(id: string): LockRecord | undefined {
+  async getLock(id: string): Promise<LockRecord | undefined> {
     return this.locks.get(id);
   }
 
-  listLocks(): LockRecord[] {
+  async listLocks(): Promise<LockRecord[]> {
     return Array.from(this.locks.values());
   }
 }
@@ -21,17 +21,17 @@ class MemoryLockRepository {
 class MemoryTradeRepository {
   private trades = new Map<string, TradeSnapshot>();
 
-  saveTrade(trade: TradeSnapshot): TradeSnapshot {
+  async saveTrade(trade: TradeSnapshot): Promise<TradeSnapshot> {
     const key = `${trade.marketId}:${trade.side}:${trade.length}`;
     this.trades.set(key, trade);
     return trade;
   }
 
-  getTrade(key: string): TradeSnapshot | undefined {
+  async getTrade(key: string): Promise<TradeSnapshot | undefined> {
     return this.trades.get(key);
   }
 
-  listTrades(): TradeSnapshot[] {
+  async listTrades(): Promise<TradeSnapshot[]> {
     return Array.from(this.trades.values());
   }
 }
@@ -39,16 +39,16 @@ class MemoryTradeRepository {
 class MemoryClaimRepository {
   private claims = new Map<string, ClaimRecord>();
 
-  saveClaim(claim: ClaimRecord): ClaimRecord {
+  async saveClaim(claim: ClaimRecord): Promise<ClaimRecord> {
     this.claims.set(claim.lockId, claim);
     return claim;
   }
 
-  getClaim(lockId: string): ClaimRecord | undefined {
+  async getClaim(lockId: string): Promise<ClaimRecord | undefined> {
     return this.claims.get(lockId);
   }
 
-  listClaims(): ClaimRecord[] {
+  async listClaims(): Promise<ClaimRecord[]> {
     return Array.from(this.claims.values());
   }
 }
@@ -58,39 +58,39 @@ class MemoryStore implements PersistenceStore {
   public readonly trades: MemoryTradeRepository = new MemoryTradeRepository();
   public readonly claims: MemoryClaimRepository = new MemoryClaimRepository();
 
-  saveLock(lock: LockRecord): LockRecord {
+  async saveLock(lock: LockRecord): Promise<LockRecord> {
     return this.locks.saveLock(lock);
   }
 
-  getLock(id: string): LockRecord | undefined {
+  async getLock(id: string): Promise<LockRecord | undefined> {
     return this.locks.getLock(id);
   }
 
-  listLocks(): LockRecord[] {
+  async listLocks(): Promise<LockRecord[]> {
     return this.locks.listLocks();
   }
 
-  saveTrade(trade: TradeSnapshot): TradeSnapshot {
+  async saveTrade(trade: TradeSnapshot): Promise<TradeSnapshot> {
     return this.trades.saveTrade(trade);
   }
 
-  getTrade(key: string): TradeSnapshot | undefined {
+  async getTrade(key: string): Promise<TradeSnapshot | undefined> {
     return this.trades.getTrade(key);
   }
 
-  listTrades(): TradeSnapshot[] {
+  async listTrades(): Promise<TradeSnapshot[]> {
     return this.trades.listTrades();
   }
 
-  saveClaim(claim: ClaimRecord): ClaimRecord {
+  async saveClaim(claim: ClaimRecord): Promise<ClaimRecord> {
     return this.claims.saveClaim(claim);
   }
 
-  getClaim(lockId: string): ClaimRecord | undefined {
+  async getClaim(lockId: string): Promise<ClaimRecord | undefined> {
     return this.claims.getClaim(lockId);
   }
 
-  listClaims(): ClaimRecord[] {
+  async listClaims(): Promise<ClaimRecord[]> {
     return this.claims.listClaims();
   }
 }

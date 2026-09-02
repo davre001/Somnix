@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { createLockRecord } from "../services/lockService.js";
 import { parsePositiveNumber, isValidLength, isValidPair, isValidSide, validateWalletAddress } from "../services/validators.js";
-import { memoryStore } from "../repositories/memoryStore.js";
+import { sqliteStore } from "../repositories/sqliteStore.js";
 
 export const lockRouter = Router();
 
@@ -35,13 +35,13 @@ lockRouter.post("/", async (req, res) => {
 
   const normalizedWallet = validateWalletAddress(walletAddress);
   const lock = createLockRecord(marketId, pair, length, side, normalizedAmount, normalizedWallet);
-  memoryStore.saveLock(lock);
+  await sqliteStore.saveLock(lock);
 
   return res.status(201).json({ ok: true, data: lock });
 });
 
 lockRouter.get("/:id", async (req, res) => {
-  const lock = memoryStore.getLock(req.params.id);
+  const lock = await sqliteStore.getLock(req.params.id);
 
   if (!lock) {
     return res.status(404).json({ ok: false, error: "Lock not found" });

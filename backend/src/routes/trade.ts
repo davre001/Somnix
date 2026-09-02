@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { buildTradeSnapshot } from "../services/tradeService.js";
 import { isValidLength, isValidPair, isValidSide, parsePositiveNumber } from "../services/validators.js";
-import { memoryStore } from "../repositories/memoryStore.js";
+import { sqliteStore } from "../repositories/sqliteStore.js";
 
 export const tradeRouter = Router();
 
@@ -34,7 +34,7 @@ tradeRouter.post("/", async (req, res) => {
   }
 
   const trade = buildTradeSnapshot(marketId, pair, length, side, normalizedAmount);
-  memoryStore.saveTrade(trade);
+  await sqliteStore.saveTrade(trade);
 
   return res.status(201).json({ ok: true, data: trade });
 });
