@@ -4,8 +4,86 @@ import type { PersistenceStore } from "./interfaces.js";
 
 const db = new sqlite3.Database("./somnix.db");
 
-function run(sql: string, params: unknown[] = []): Promise<void> {
-  return new Promise((resolve, reject) => {
+const initDatabasePromise = new Promise<void>((resolve, reject) => {
+  db.serialize(() => {
+    db.run(
+      `
+        CREATE TABLE IF NOT EXISTS locks (
+          id TEXT PRIMARY KEY,
+          marketId TEXT NOT NULL,
+          pair TEXT NOT NULL,
+          length TEXT NOT NULL,
+          side TEXT NOT NULL,
+          amount REAL NOT NULL,
+          walletAddress TEXT,
+          lockedAt INTEGER NOT NULL,
+          hidePriceUntil INTEGER NOT NULL,
+          status TEXT NOT NULL,
+          payout REAL NOT NULL,
+          startPrice REAL NOT NULL,
+          endPrice REAL,
+          txHash TEXT
+        );
+      `,
+      (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        db.run(
+          `
+            CREATE TABLE IF NOT EXISTS trades (
+              id TEXT PRIMARY KEY,
+              marketId TEXT NOT NULL,
+              pair TEXT NOT NULL,
+              length TEXT NOT NULL,
+              side TEXT NOT NULL,
+              amount REAL NOT NULL,
+              startPrice REAL NOT NULL,
+              currentPrice REAL NOT NULL,
+              greenOdds REAL NOT NULL,
+              redOdds REAL NOT NULL,
+              payout REAL NOT NULL,
+              isLive INTEGER NOT NULL DEFAULT 1
+            );
+          `,
+          (tradeErr) => {
+            if (tradeErr) {
+              reject(tradeErr);
+              return;
+            }
+
+            db.run(
+              `
+                CREATE TABLE IF NOT EXISTS claims (
+                  id TEXT PRIMARY KEY,
+                  lockId TEXT NOT NULL,
+                  walletAddress TEXT,
+                  status TEXT NOT NULL,
+                  payout REAL NOT NULL,
+                  txHash TEXT NOT NULL,
+                  claimedAt INTEGER NOT NULL
+                );
+              `,
+              (claimErr) => {
+                if (claimErr) {
+                  reject(claimErr);
+                  return;
+                }
+                resolve();
+              },
+            );
+          },
+        );
+      },
+    );
+  });
+});
+
+async function run(sql: string, params: unknown[] = []): Promise<void> {
+  await initDatabasePromise;
+  await new Promise<void>((resolve, reject) => {
     db.run(sql, params, function onRun(err) {
       if (err) {
         reject(err);
@@ -16,8 +94,9 @@ function run(sql: string, params: unknown[] = []): Promise<void> {
   });
 }
 
-function get<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
-  return new Promise((resolve, reject) => {
+async function get<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
+  await initDatabasePromise;
+  return await new Promise<T | undefined>((resolve, reject) => {
     db.get(sql, params, (err, row) => {
       if (err) {
         reject(err);
@@ -28,8 +107,9 @@ function get<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
   });
 }
 
-function all<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-  return new Promise((resolve, reject) => {
+async function all<T>(sql: string, params: unknown[] = []): Promise<T[]> {
+  await initDatabasePromise;
+  return await new Promise<T[]>((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
       if (err) {
         reject(err);
@@ -39,58 +119,6 @@ function all<T>(sql: string, params: unknown[] = []): Promise<T[]> {
     });
   });
 }
-
-async function initDatabase() {
-  await run(`
-    CREATE TABLE IF NOT EXISTS locks (
-      id TEXT PRIMARY KEY,
-      marketId TEXT NOT NULL,
-      pair TEXT NOT NULL,
-      length TEXT NOT NULL,
-      side TEXT NOT NULL,
-      amount REAL NOT NULL,
-      walletAddress TEXT,
-      lockedAt INTEGER NOT NULL,
-      hidePriceUntil INTEGER NOT NULL,
-      status TEXT NOT NULL,
-      payout REAL NOT NULL,
-      startPrice REAL NOT NULL,
-      endPrice REAL,
-      txHash TEXT
-    );
-  `);
-
-  await run(`
-    CREATE TABLE IF NOT EXISTS trades (
-      id TEXT PRIMARY KEY,
-      marketId TEXT NOT NULL,
-      pair TEXT NOT NULL,
-      length TEXT NOT NULL,
-      side TEXT NOT NULL,
-      amount REAL NOT NULL,
-      startPrice REAL NOT NULL,
-      currentPrice REAL NOT NULL,
-      greenOdds REAL NOT NULL,
-      redOdds REAL NOT NULL,
-      payout REAL NOT NULL,
-      isLive INTEGER NOT NULL DEFAULT 1
-    );
-  `);
-
-  await run(`
-    CREATE TABLE IF NOT EXISTS claims (
-      id TEXT PRIMARY KEY,
-      lockId TEXT NOT NULL,
-      walletAddress TEXT,
-      status TEXT NOT NULL,
-      payout REAL NOT NULL,
-      txHash TEXT NOT NULL,
-      claimedAt INTEGER NOT NULL
-    );
-  `);
-}
-
-void initDatabase();
 
 class SqliteLockRepository {
   async saveLock(lock: LockRecord): Promise<LockRecord> {
@@ -136,7 +164,7 @@ class SqliteLockRepository {
   async getLock(id: string): Promise<LockRecord | undefined> {
     const row = await get<any>(`SELECT * FROM locks WHERE id = ?`, [id]);
     if (!row) return undefined;
-    return {
+    const record: LockRecord = {
       id: row.id,
       marketId: row.marketId,
       pair: row.pair,
@@ -149,29 +177,47 @@ class SqliteLockRepository {
       status: row.status,
       payout: Number(row.payout),
       startPrice: Number(row.startPrice),
-      endPrice: row.endPrice === null ? undefined : Number(row.endPrice),
-      txHash: row.txHash ?? undefined,
     };
+
+    if (row.endPrice !== null && row.endPrice !== undefined) {
+      record.endPrice = Number(row.endPrice);
+    }
+
+    if (row.txHash !== null && row.txHash !== undefined) {
+      record.txHash = row.txHash;
+    }
+
+    return record;
   }
 
   async listLocks(): Promise<LockRecord[]> {
     const rows = await all<any>(`SELECT * FROM locks ORDER BY lockedAt DESC`);
-    return rows.map((row) => ({
-      id: row.id,
-      marketId: row.marketId,
-      pair: row.pair,
-      length: row.length,
-      side: row.side,
-      amount: Number(row.amount),
-      walletAddress: row.walletAddress,
-      lockedAt: Number(row.lockedAt),
-      hidePriceUntil: Number(row.hidePriceUntil),
-      status: row.status,
-      payout: Number(row.payout),
-      startPrice: Number(row.startPrice),
-      endPrice: row.endPrice === null ? undefined : Number(row.endPrice),
-      txHash: row.txHash ?? undefined,
-    }));
+    return rows.map((row) => {
+      const record: LockRecord = {
+        id: row.id,
+        marketId: row.marketId,
+        pair: row.pair,
+        length: row.length,
+        side: row.side,
+        amount: Number(row.amount),
+        walletAddress: row.walletAddress,
+        lockedAt: Number(row.lockedAt),
+        hidePriceUntil: Number(row.hidePriceUntil),
+        status: row.status,
+        payout: Number(row.payout),
+        startPrice: Number(row.startPrice),
+      };
+
+      if (row.endPrice !== null && row.endPrice !== undefined) {
+        record.endPrice = Number(row.endPrice);
+      }
+
+      if (row.txHash !== null && row.txHash !== undefined) {
+        record.txHash = row.txHash;
+      }
+
+      return record;
+    });
   }
 }
 
