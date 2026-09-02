@@ -18,6 +18,7 @@
   --color-card-dark: #0d0d11;
   --color-card-border: #1f1f24;
   --color-card-hover: #16161b;
+  --breakpoint-xs: 30rem;
 }
 
 * {
@@ -30,7 +31,7 @@ body {
   background-color: #050507;
   color: #f4f4f5;
   font-family: var(--font-source-code-pro), monospace;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.03em;
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
