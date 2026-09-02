@@ -15,6 +15,9 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 const app = express();
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 app.use("/api/markets", marketsRouter);
 app.use("/api/card", cardRouter);
 app.use("/api/lock", lockRouter);
