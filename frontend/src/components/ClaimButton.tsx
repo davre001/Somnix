@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useSomnix } from '@/lib/useSomnix';
 import { UserLock } from '@/lib/types';
-import { Loader2, CheckCircle2, AlertCircle, ArrowUpRight, Coins } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Coins } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface ClaimButtonProps {
@@ -12,7 +12,7 @@ interface ClaimButtonProps {
 }
 
 export function ClaimButton({ lock, onClaimSuccess }: ClaimButtonProps) {
-  const { claimPayout } = useSomnix();
+  const { claimPayout, wallet } = useSomnix();
   const [status, setStatus] = useState<'idle' | 'claiming' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -44,9 +44,9 @@ export function ClaimButton({ lock, onClaimSuccess }: ClaimButtonProps) {
         onClaimSuccess?.(res.txHash);
       } else {
         setStatus('error');
-        setErrorMsg('Somnia network busy. Please retry.');
+        setErrorMsg(res.reason || 'Claim failed. Please retry.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Claim error:', err);
       setStatus('error');
       setErrorMsg('Transaction failed. Tap to retry.');
@@ -58,7 +58,7 @@ export function ClaimButton({ lock, onClaimSuccess }: ClaimButtonProps) {
       <div className="w-full flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-zinc-900 border border-zinc-700 text-center animate-in fade-in duration-200">
         <div className="flex items-center gap-2 text-sm font-bold text-white">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>Paid {lock.payout || (lock.amount * 1.92).toFixed(1)} STT</span>
+          <span>Redeemed {lock.payout.toFixed(2)} {wallet.currencySymbol}</span>
         </div>
         <p className="text-[11px] text-zinc-400 font-mono">
           Paid. Budget can be used on the next window.
@@ -82,7 +82,7 @@ export function ClaimButton({ lock, onClaimSuccess }: ClaimButtonProps) {
         ) : (
           <>
             <Coins className="w-5 h-5 text-black" />
-            <span>Claim Payout ({lock.payout || (lock.amount * 1.92).toFixed(1)} STT)</span>
+            <span>Claim Payout ({lock.payout.toFixed(2)} {wallet.currencySymbol})</span>
           </>
         )}
       </button>

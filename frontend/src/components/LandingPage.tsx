@@ -11,9 +11,7 @@ import {
   EyeOff,
   ShieldCheck,
   Zap,
-  TrendingUp,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 
 const badge = (text: string, color = 'text-white') => (
@@ -385,7 +383,7 @@ export function LandingPage() {
                   <span className="text-zinc-300">Zen Lock Timers</span>
                 </li>
                 <li>
-                  <span className="text-zinc-300">~1.92x Binary Multiplier</span>
+                  <span className="text-zinc-300">Live Order Book Pricing</span>
                 </li>
               </ul>
             </div>

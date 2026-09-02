@@ -124,16 +124,15 @@ export function SqueezeCarousel({
     const ms = reduced ? 0 : duration;
 
     const ids = useId();
-    const seed = useRef(0);
+    const seed = useRef(visible);
     const strip = useRef<HTMLDivElement>(null);
 
-    const window0 = () =>
+    const [cards, setCards] = useState<Card[]>(() =>
         Array.from({ length: visible }, (_, p) => ({
-            key: seed.current++,
+            key: p,
             slide: wrap(defaultIndex + p),
-        }));
-
-    const [cards, setCards] = useState<Card[]>(window0);
+        }))
+    );
     const [column, setColumn] = useState(0);
     const columnRef = useRef(0);
     const forward = useRef(true);
@@ -198,17 +197,6 @@ export function SqueezeCarousel({
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [count, ms, settle],
-    );
-
-    const go = useCallback(
-        (to: number) => {
-            const here = open;
-            if (to === here) return;
-            const fwd = wrap(to - here);
-            step(fwd <= count / 2 ? fwd : fwd - count);
-        },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [open, count, step],
     );
 
     useEffect(() => {
@@ -411,6 +399,7 @@ function Picture({ slide }: { slide: SqueezeSlide }) {
 
     if (slide.image) {
         return (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
                 src={slide.image}
                 alt={slide.imageAlt ?? ""}

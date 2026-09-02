@@ -29,20 +29,19 @@ export function ShareCard({
 
   if (!isOpen) return null;
 
-  const shareUrl = generateTradeShareUrl({
-    id: `SX-${Date.now().toString(36).toUpperCase()}`,
-    pair,
-    length,
-    side,
-    amount,
-    startPrice,
-    lockedAt: Date.now(),
-    status: 'locked',
-  });
-
   const shareText = `I locked ${side.toUpperCase()} on ${pair} ${length} on SOMNIX (Somnia). Check out my trade here:`;
 
   const handleCopy = () => {
+    const shareUrl = generateTradeShareUrl({
+      id: `SX-${Date.now().toString(36).toUpperCase()}`,
+      pair,
+      length,
+      side,
+      amount,
+      startPrice,
+      lockedAt: Date.now(),
+      status: 'locked',
+    });
     navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

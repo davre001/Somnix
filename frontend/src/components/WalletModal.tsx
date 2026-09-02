@@ -1,9 +1,6 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSomnix } from '@/lib/useSomnix';
-import { SOMNIA_CONFIG } from '@/lib/somnia';
-import { X, Check, Loader2, ExternalLink, ShieldCheck, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Loader2, ExternalLink, ShieldCheck, AlertCircle, Sparkles } from 'lucide-react';
 
 interface WalletOption {
   id: string;
@@ -11,31 +8,32 @@ interface WalletOption {
   description: string;
   badge?: string;
   isPopular?: boolean;
-  getProvider?: () => any;
+  getProvider?: () => unknown;
   icon: React.ReactNode;
   downloadUrl: string;
+}
+
+function getInstalledWallets(): Record<string, boolean> {
+  if (typeof window === 'undefined') return {};
+  const win = window as unknown as Record<string, unknown>;
+  const eth = win.ethereum as Record<string, unknown> | undefined;
+  const providers = (eth?.providers as Array<Record<string, unknown>>) || [];
+  return {
+    metamask: Boolean(eth?.isMetaMask || providers.some((p) => p?.isMetaMask)),
+    coinbase: Boolean(win.coinbaseWalletExtension || eth?.isCoinbaseWallet),
+    rainbow: Boolean(eth?.isRainbow),
+    trust: Boolean(win.trustwallet || eth?.isTrust),
+    okx: Boolean(win.okxwallet),
+    phantom: Boolean((win.phantom as Record<string, unknown>)?.ethereum || eth?.isPhantom),
+    injected: Boolean(eth),
+  };
 }
 
 export function WalletModal() {
   const { isWalletModalOpen, closeWalletModal, connectWallet, enterAppInWatchMode } = useSomnix();
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [installedWallets, setInstalledWallets] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const eth = (window as any).ethereum;
-    setInstalledWallets({
-      metamask: Boolean(eth?.isMetaMask || (window as any).ethereum?.providers?.some((p: any) => p.isMetaMask)),
-      coinbase: Boolean((window as any).coinbaseWalletExtension || eth?.isCoinbaseWallet),
-      rainbow: Boolean(eth?.isRainbow),
-      trust: Boolean((window as any).trustwallet || eth?.isTrust),
-      okx: Boolean((window as any).okxwallet),
-      phantom: Boolean((window as any).phantom?.ethereum || eth?.isPhantom),
-      injected: Boolean(eth),
-    });
-  }, [isWalletModalOpen]);
+  const installedWallets = useMemo(() => getInstalledWallets(), []);
 
   if (!isWalletModalOpen) return null;
 
@@ -157,9 +155,13 @@ export function WalletModal() {
       if (success) {
         closeWalletModal();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Wallet connection error:', err);
-      setErrorMessage(err?.message || 'Failed to connect. Please unlock your wallet and approve the connection.');
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : 'Failed to connect. Please unlock your wallet and approve the connection.'
+      );
     } finally {
       setConnectingId(null);
     }

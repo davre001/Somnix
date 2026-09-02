@@ -215,6 +215,7 @@ const ParticleWave: React.FC<ParticleWaveProps> = ({ className = '' }) => {
         renderer.dispose();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

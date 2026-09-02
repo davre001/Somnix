@@ -2,10 +2,14 @@
   "name": "somnix-workspace",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@11.21.0",
   "scripts": {
-    "dev": "npm --prefix frontend run dev",
-    "build": "npm --prefix frontend run build",
-    "start": "npm --prefix frontend start",
-    "lint": "npm --prefix frontend run lint"
+    "dev": "pnpm --parallel --filter frontend --filter somnix-backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter somnix-backend dev",
+    "build": "pnpm --filter somnix-backend build && pnpm --filter frontend build",
+    "lint": "pnpm --filter somnix-backend lint && pnpm --filter frontend lint",
+    "typecheck": "pnpm --filter somnix-backend typecheck && pnpm --filter frontend typecheck",
+    "test": "pnpm --filter somnix-backend test && pnpm --filter frontend test"
   }
 }

@@ -17,6 +17,11 @@ interface LiquidMetalButtonProps {
   height?: number;
 }
 
+interface ShaderMountInstance {
+  setSpeed?: (speed: number) => void;
+  destroy?: () => void;
+}
+
 export function LiquidMetalButton({
   label = "Get Started",
   onClick,
@@ -35,7 +40,7 @@ export function LiquidMetalButton({
     Array<{ x: number; y: number; id: number }>
   >([]);
   const shaderRef = useRef<HTMLDivElement>(null);
-  const shaderMount = useRef<any>(null);
+  const shaderMount = useRef<ShaderMountInstance | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const rippleId = useRef(0);
 
@@ -133,7 +138,7 @@ export function LiquidMetalButton({
             },
             undefined,
             0.65
-          );
+          ) as unknown as ShaderMountInstance;
         }
       } catch (error) {
         console.error("[LiquidMetal] Shader load fallback:", error);
