@@ -1,0 +1,84 @@
+Somnix/
+├── .claude/
+│   ├── agents/
+│   ├── commands/
+│   └── settings/
+├── .git/
+├── .gitignore
+├── backend/
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── src/
+│       ├── index.ts
+│       ├── lib/
+│       │   ├── dreamdex.ts
+│       │   └── env.ts
+│       └── routes/
+│           ├── card.ts
+│           └── markets.ts
+├── frontend/
+│   ├── AGENTS.md
+│   ├── CLAUDE.md
+│   ├── eslint.config.mjs
+│   ├── next.config.ts
+│   ├── package.json
+│   ├── postcss.config.mjs
+│   ├── README.md
+│   ├── tsconfig.json
+│   ├── public/
+│   └── src/
+│       ├── app/
+│       │   ├── globals.css
+│       │   ├── layout.tsx
+│       │   ├── page.tsx
+│       │   ├── locked/
+│       │   │   └── page.tsx
+│       │   ├── recents/
+│       │   │   └── page.tsx
+│       │   ├── reveal/
+│       │   │   └── page.tsx
+│       │   └── trade/
+│       │       └── page.tsx
+│       ├── components/
+│       │   ├── AmountChips.tsx
+│       │   ├── BudgetLine.tsx
+│       │   ├── ClaimButton.tsx
+│       │   ├── Countdown.tsx
+│       │   ├── FeatureCardDeck.tsx
+│       │   ├── LandingPage.tsx
+│       │   ├── LockPanel.tsx
+│       │   ├── OddsBar.tsx
+│       │   ├── ReasonText.tsx
+│       │   ├── RecentsList.tsx
+│       │   ├── RevealPanel.tsx
+│       │   ├── ShareCard.tsx
+│       │   ├── SideButtons.tsx
+│       │   ├── TopBar.tsx
+│       │   ├── WindowSwitch.tsx
+│       │   └── ui/
+│       │       ├── badge.tsx
+│       │       ├── button.tsx
+│       │       ├── card.tsx
+│       │       ├── carousel-squeeze.tsx
+│       │       ├── header-2.tsx
+│       │       ├── header-demo.tsx
+│       │       ├── liquid-metal-button-demo.tsx
+│       │       ├── liquid-metal-button.tsx
+│       │       ├── menu-toggle-icon.tsx
+│       │       ├── particle-wave.tsx
+│       │       ├── radial-orbital-timeline-demo.tsx
+│       │       └── radial-orbital-timeline.tsx
+│       └── lib/
+│           ├── marketService.ts
+│           ├── somnia.ts
+│           ├── tradeShare.ts
+│           ├── types.ts
+│           ├── useSomnix.tsx
+│           └── utils.ts
+├── frontend_implementation.md
+├── LICENSE
+├── node_modules/
+├── package-lock.json
+├── package.json
+├── README.md
+└── file-tree.txt
