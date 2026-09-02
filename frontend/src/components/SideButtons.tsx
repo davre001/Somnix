@@ -10,7 +10,7 @@ import { ArrowUpRight, ArrowDownRight, Loader2, AlertCircle } from 'lucide-react
 
 export function SideButtons() {
   const router = useRouter();
-  const { lockValidation, executeLock, wallet } = useSomnix();
+  const { lockValidation, executeLock, wallet, openWalletModal } = useSomnix();
   const [submittingSide, setSubmittingSide] = useState<MarketSide | null>(null);
   const [lockError, setLockError] = useState<string | null>(null);
 
@@ -35,7 +35,6 @@ export function SideButtons() {
   };
 
   if (wallet.isWatchMode) {
-    const { openWalletModal } = useSomnix();
     return (
       <div className="w-full p-4 sm:p-5 rounded-2xl bg-[#0c0c10] border border-zinc-800 text-center space-y-3 shadow-md">
         <div>

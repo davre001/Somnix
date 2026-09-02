@@ -155,7 +155,6 @@ export function RecentsList() {
                     <span className="font-bold text-sm text-white font-mono">
                       {item.pair} · {item.length}
                     </span>
-<<<<<<< Updated upstream
                     <span
                       className={`text-[9px] sm:text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase ${
                         isGreenResult
@@ -170,7 +169,7 @@ export function RecentsList() {
                     <span>${item.startPrice.toLocaleString()}</span>
                     <span>→</span>
                     <span className={`font-semibold ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
-                      ${item.endPrice.toLocaleString()}
+                      {item.endPrice != null ? `$${item.endPrice.toLocaleString()}` : '—'}
                     </span>
                     {isVoided ? (
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase bg-zinc-800 text-zinc-300 border-zinc-700">

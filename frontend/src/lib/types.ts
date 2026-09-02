@@ -42,6 +42,7 @@ export interface RecentWindow {
   startTime: number;
   endTime: number;
   startPrice: number;
+  endPrice?: number;
   resultSide: MarketSide;
   userPlayed: boolean;
   userSide?: MarketSide;

@@ -147,53 +147,37 @@ export function RevealPanel() {
       </div>
 
       {/* Result Breakdown Card */}
-<<<<<<< Updated upstream
       <div className="w-full p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#0c0c10] border border-zinc-800 space-y-3.5 sm:space-y-4 shadow-xl">
         <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-mono pb-2.5 sm:pb-3 border-b border-zinc-800">
           <span className="text-zinc-400">Window Outcome:</span>
-          <div className={`flex items-center gap-1.5 font-bold uppercase ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
-            {isGreenResult ? (
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
-            ) : (
-              <TrendingDown className="w-4 h-4 text-red-400" />
-            )}
-            <span>Finished {resultSide.toUpperCase()} ({isGreenResult ? 'Up' : 'Down'})</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 text-left text-xs font-mono">
-          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80">
-            <span className="text-[10px] sm:text-[11px] text-zinc-500 uppercase block mb-0.5 sm:mb-1">Start Price</span>
-            <span className="font-bold text-zinc-200 text-sm xs:text-base sm:text-lg font-mono">${activeLock.startPrice.toLocaleString()}</span>
-          </div>
-          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80">
-            <span className="text-[10px] sm:text-[11px] text-zinc-500 uppercase block mb-0.5 sm:mb-1">Settlement Price</span>
-            <span className={`font-bold text-sm xs:text-base sm:text-lg font-mono ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
-              ${resolution.endPrice.toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 text-left text-xs font-mono">
-          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80">
-            <span className="text-[10px] sm:text-[11px] text-zinc-500 uppercase block mb-0.5 sm:mb-1">Start Price</span>
-            <span className="font-bold text-zinc-200 text-sm xs:text-base sm:text-lg font-mono">${activeLock.startPrice.toLocaleString()}</span>
-          </div>
-          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80">
-            <span className="text-[10px] sm:text-[11px] text-zinc-500 uppercase block mb-0.5 sm:mb-1">Settlement Price</span>
-            <span className={`font-bold text-sm xs:text-base sm:text-lg font-mono ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
-              ${resolution.endPrice.toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        {isVoided && (
-          <div className="text-xs font-mono text-center text-zinc-300 pt-1">
+          {isVoided ? (
             <span className="font-bold uppercase text-zinc-300">Voided · Refundable</span>
+          ) : (
+            <div className={`flex items-center gap-1.5 font-bold uppercase ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
+              {isGreenResult ? (
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
+              ) : (
+                <TrendingDown className="w-4 h-4 text-red-400" />
+              )}
+              <span>Finished {resultSide?.toUpperCase()} ({isGreenResult ? 'Up' : 'Down'})</span>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 text-left text-xs font-mono">
+          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80">
+            <span className="text-[10px] sm:text-[11px] text-zinc-500 uppercase block mb-0.5 sm:mb-1">Start Price</span>
+            <span className="font-bold text-zinc-200 text-sm xs:text-base sm:text-lg font-mono">${activeLock.startPrice.toLocaleString()}</span>
           </div>
-        )}
+          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80">
+            <span className="text-[10px] sm:text-[11px] text-zinc-500 uppercase block mb-0.5 sm:mb-1">Settlement Price</span>
+            <span className={`font-bold text-sm xs:text-base sm:text-lg font-mono ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
+              {resolution.endPrice != null ? `$${resolution.endPrice.toLocaleString()}` : '—'}
+            </span>
+          </div>
+        </div>
       </div>
-      </div>
+
 
       {/* Payout / Claim Section */}
       {(userWon || isVoided) && (

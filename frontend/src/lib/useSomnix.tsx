@@ -22,6 +22,7 @@ import {
   addRecentWindow,
   getCurrentWindowBounds,
   loadPendingLockIntent,
+  savePendingLockIntent,
   clearPendingLockIntent,
 } from './marketService';
 import { fetchCollateralBalance, fetchCollateralMeta, somniaTestnet, SOMNIA_CONFIG } from './somnia';
@@ -36,6 +37,7 @@ import {
   requestFaucet,
   checkFilledAmount,
   reconcileOutcome,
+  isAmbiguousTxError,
 } from './exchange';
 
 interface ClaimResult {

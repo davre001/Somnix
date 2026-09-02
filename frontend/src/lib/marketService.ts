@@ -213,6 +213,7 @@ export function clearPendingLockIntent(): void {
   localStorage.removeItem(STORAGE_KEYS.PENDING_LOCK);
 }
 
+
 /**
  * Records a lock the user just placed via a real on-chain order (see exchange.ts#lockPosition).
  */

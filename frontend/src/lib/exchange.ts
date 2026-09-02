@@ -177,6 +177,8 @@ export interface MarketResolution {
   resolved: boolean;
   voided: boolean;
   winningSide?: MarketSide;
+  /** Settlement price of the underlying asset at market close, if available. */
+  endPrice?: number;
 }
 
 /** Whether `marketId` has resolved on-chain yet, and which side won. */
@@ -184,9 +186,13 @@ export async function getResolution(marketId: string): Promise<MarketResolution>
   const ex = getExchange();
   const market = await ex.client.getMarket(marketId);
   if (!market || market.marketType !== 'BINARY') return { resolved: false, voided: false };
-  if (market.voided) return { resolved: true, voided: true };
-  if (market.winningOutcome == null) return { resolved: false, voided: false };
-  return { resolved: true, voided: false, winningSide: market.winningOutcome === 0 ? 'green' : 'red' };
+  const endPrice: number | undefined =
+    typeof (market as { closingPrice?: number }).closingPrice === 'number'
+      ? (market as { closingPrice?: number }).closingPrice
+      : undefined;
+  if (market.voided) return { resolved: true, voided: true, endPrice };
+  if (market.winningOutcome == null) return { resolved: false, voided: false, endPrice };
+  return { resolved: true, voided: false, winningSide: market.winningOutcome === 0 ? 'green' : 'red', endPrice };
 }
 
 /** Redeems `amount` of the winning outcome token on `marketId` for collateral. */
