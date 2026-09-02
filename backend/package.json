@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@somnia-chain/markets-sdk": "^0.28.0",
+    "@types/cors": "^2.8.19",
+    "cors": "^2.8.6",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "sharp": "^0.35.4",
