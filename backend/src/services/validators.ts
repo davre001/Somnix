@@ -27,6 +27,12 @@ export function parsePositiveNumber(value: unknown): number | null {
   return null;
 }
 
+export function parseProbability(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) return null;
+  return parsed;
+}
+
 export function validateWalletAddress(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
