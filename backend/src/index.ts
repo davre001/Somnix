@@ -3,6 +3,9 @@ import dotenv from "dotenv";
 import express from "express";
 import { marketsRouter } from "./routes/markets.js";
 import { cardRouter } from "./routes/card.js";
+import { lockRouter } from "./routes/lock.js";
+import { tradeRouter } from "./routes/trade.js";
+import { claimRouter } from "./routes/claim.js";
 
 // Resolved from cwd, not __dirname: dev runs src/index.ts directly (tsx),
 // prod runs the flattened dist/index.js (tsc, rootDir src) — those sit at
@@ -14,6 +17,9 @@ const app = express();
 
 app.use("/api/markets", marketsRouter);
 app.use("/api/card", cardRouter);
+app.use("/api/lock", lockRouter);
+app.use("/api/trade", tradeRouter);
+app.use("/api/claim", claimRouter);
 
 const port = Number(process.env.PORT ?? 4000);
 app.listen(port, () => {
