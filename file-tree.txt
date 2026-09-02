@@ -13,9 +13,25 @@ Somnix/
 │       ├── lib/
 │       │   ├── dreamdex.ts
 │       │   └── env.ts
-│       └── routes/
-│           ├── card.ts
-│           └── markets.ts
+│       ├── middleware/
+│       │   └── errorHandler.ts
+│       ├── repositories/
+│       │   ├── index.ts
+│       │   ├── interfaces.ts
+│       │   └── memoryStore.ts
+│       ├── routes/
+│       │   ├── card.ts
+│       │   ├── claim.ts
+│       │   ├── lock.ts
+│       │   ├── markets.ts
+│       │   └── trade.ts
+│       ├── services/
+│       │   ├── claimService.ts
+│       │   ├── lockService.ts
+│       │   ├── tradeService.ts
+│       │   └── validators.ts
+│       └── types/
+│           └── api.ts
 ├── frontend/
 │   ├── AGENTS.md
 │   ├── CLAUDE.md
@@ -81,4 +97,5 @@ Somnix/
 ├── package-lock.json
 ├── package.json
 ├── README.md
-└── file-tree.txt
+├── file-tree.txt
+└── .env.local
