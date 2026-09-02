@@ -93,12 +93,7 @@ function TradeContent() {
             <div className="w-8 h-8 rounded-lg bg-white text-black font-black text-sm flex items-center justify-center tracking-tighter shadow-md">
               SX
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-lg tracking-tight text-white uppercase">SOMNIX</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 font-mono font-medium tracking-wider uppercase border border-zinc-700">
-                Somnia Testnet
-              </span>
-            </div>
+            <span className="font-black text-lg tracking-tight text-white uppercase">SOMNIX</span>
           </Link>
 
           <div className="flex items-center gap-3">

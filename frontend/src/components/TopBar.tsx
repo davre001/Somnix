@@ -91,14 +91,9 @@ export function TopBar() {
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-black text-black text-sm tracking-tighter shadow-md transition-transform duration-200 group-hover:scale-105">
               SX
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-black tracking-tight text-white text-lg leading-none uppercase">
-                SOMNIX
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 font-mono font-semibold tracking-wider uppercase border border-zinc-700">
-                Somnia
-              </span>
-            </div>
+            <span className="font-black tracking-tight text-white text-lg leading-none uppercase">
+              SOMNIX
+            </span>
           </button>
 
           {/* Desktop Nav Links */}

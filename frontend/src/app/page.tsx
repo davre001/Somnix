@@ -78,7 +78,7 @@ export default function HomePage() {
       {/* Top Full-Width Navigation Bar */}
       <TopBar />
 
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 lg:py-8 flex-1">
+      <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1">
         {/* Page Title & Breadcrumb */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-6">
           <div>
@@ -112,9 +112,9 @@ export default function HomePage() {
         </div>
 
         {/* 2-Column Responsive Dashboard Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 lg:gap-8 items-start">
-          {/* Main Action Stage (8 Columns) */}
-          <div className="lg:col-span-8 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start">
+          {/* Main Action Stage */}
+          <div className="lg:col-span-8 space-y-3 sm:space-y-4 order-1">
             {/* Pair & Length Switcher */}
             <WindowSwitch />
 
@@ -128,7 +128,7 @@ export default function HomePage() {
             <LiveCryptoChart
               pair={selectedPair}
               length={selectedLength}
-              height={440}
+              height={280}
             />
 
             {/* Odds Indicator Bar with 70% threshold warning */}
@@ -152,8 +152,8 @@ export default function HomePage() {
             <SideButtons />
           </div>
 
-          {/* Right Sidebar Information Panels (4 Columns) */}
-          <div className="lg:col-span-4 space-y-4">
+          {/* Right Sidebar Information Panels (4 Columns) – shows below on mobile */}
+          <div className="lg:col-span-4 space-y-3 sm:space-y-4 order-2 lg:order-2">
             {/* Day Budget Tracker Card */}
             {wallet.isConnected && (
               <div className="p-5 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-3">
