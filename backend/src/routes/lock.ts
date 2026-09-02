@@ -35,13 +35,13 @@ lockRouter.post("/", async (req, res) => {
 
   const normalizedWallet = validateWalletAddress(walletAddress);
   const lock = createLockRecord(marketId, pair, length, side, normalizedAmount, normalizedWallet);
-  memoryStore.getLocks().set(lock.id, lock);
+  memoryStore.saveLock(lock);
 
   return res.status(201).json({ ok: true, data: lock });
 });
 
 lockRouter.get("/:id", async (req, res) => {
-  const lock = memoryStore.getLocks().get(req.params.id);
+  const lock = memoryStore.getLock(req.params.id);
 
   if (!lock) {
     return res.status(404).json({ ok: false, error: "Lock not found" });

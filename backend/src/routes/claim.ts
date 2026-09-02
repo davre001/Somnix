@@ -17,13 +17,13 @@ claimRouter.post("/", async (req, res) => {
   }
 
   const normalizedWallet = validateWalletAddress(walletAddress);
-  const existingClaim = memoryStore.getClaims().get(lockId);
+  const existingClaim = memoryStore.getClaim(lockId);
 
   if (existingClaim) {
     return res.json({ ok: true, data: existingClaim });
   }
 
-  const lock = memoryStore.getLocks().get(lockId);
+  const lock = memoryStore.getLock(lockId);
   const payout = lock?.payout ?? 0;
   const claim = createClaimRecord(lockId, normalizedWallet, payout);
 
@@ -31,12 +31,12 @@ claimRouter.post("/", async (req, res) => {
     claim.txHash = txHash.trim();
   }
 
-  memoryStore.getClaims().set(lockId, claim);
+  memoryStore.saveClaim(claim);
   return res.status(201).json({ ok: true, data: claim });
 });
 
 claimRouter.get("/:id", async (req, res) => {
-  const claim = memoryStore.getClaims().get(req.params.id);
+  const claim = memoryStore.getClaim(req.params.id);
 
   if (!claim) {
     return res.status(404).json({ ok: false, error: "Claim not found" });

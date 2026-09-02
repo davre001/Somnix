@@ -34,7 +34,7 @@ tradeRouter.post("/", async (req, res) => {
   }
 
   const trade = buildTradeSnapshot(marketId, pair, length, side, normalizedAmount);
-  memoryStore.getTrades().set(`${marketId}:${side}:${length}`, trade);
+  memoryStore.saveTrade(trade);
 
   return res.status(201).json({ ok: true, data: trade });
 });
