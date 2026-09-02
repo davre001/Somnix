@@ -119,20 +119,20 @@ export function LiquidMetalButton({
             shaderRef.current,
             liquidMetalFragmentShader,
             {
-              u_repetition: 4,
-              u_softness: 0.5,
+              u_repetition: 2,
+              u_softness: 0.45,
               u_shiftRed: shiftRed,
               u_shiftBlue: shiftBlue,
-              u_distortion: 0,
-              u_contour: 0,
-              u_angle: 45,
-              u_scale: 8,
-              u_shape: 1,
-              u_offsetX: 0.1,
-              u_offsetY: -0.1,
+              u_distortion: 0.05,
+              u_contour: 0.1,
+              u_angle: 35,
+              u_scale: 1.0,
+              u_shape: 0,
+              u_offsetX: 0.0,
+              u_offsetY: 0.0,
             },
             undefined,
-            0.6
+            0.65
           );
         }
       } catch (error) {

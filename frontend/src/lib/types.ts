@@ -1,5 +1,5 @@
 export type WindowPair = 'BTC' | 'ETH';
-export type WindowLength = '15m' | '1h';
+export type WindowLength = '1m' | '3m' | '5m' | '15m' | '1h';
 export type MarketSide = 'green' | 'red';
 
 export interface MarketWindow {

@@ -18,7 +18,8 @@ export function Countdown({
   const secs = remainingSeconds % 60;
   const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
-  const isEndingSoon = remainingSeconds < 60;
+  const warningThreshold = totalDurationSeconds <= 60 ? 10 : totalDurationSeconds <= 180 ? 20 : totalDurationSeconds <= 300 ? 30 : 60;
+  const isEndingSoon = remainingSeconds <= warningThreshold;
   const progressPct = Math.max(0, Math.min(100, (remainingSeconds / totalDurationSeconds) * 100));
 
   if (compact) {
@@ -31,7 +32,7 @@ export function Countdown({
   }
 
   return (
-    <div className="w-full flex flex-col items-center justify-center py-4 px-6 rounded-2xl bg-[#0c0c10] border border-zinc-800/80 shadow-md relative overflow-hidden group">
+    <div className="w-full flex flex-col items-center justify-center py-3.5 sm:py-4 px-4 sm:px-6 rounded-2xl bg-[#0c0c10] border border-zinc-800/80 shadow-md relative overflow-hidden group">
       {/* Background ambient subtle glow */}
       <div
         className={`absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-20 rounded-full blur-3xl pointer-events-none transition-opacity duration-500 ${
@@ -39,20 +40,20 @@ export function Countdown({
         }`}
       />
 
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-[11px] font-mono tracking-widest text-zinc-400 uppercase">
+      <div className="flex flex-wrap items-center justify-center gap-2 mb-1">
+        <span className="text-[10px] sm:text-[11px] font-mono tracking-widest text-zinc-400 uppercase">
           Time Remaining in Window
         </span>
         {isEndingSoon && (
           <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded animate-pulse">
-            <AlertTriangle className="w-3 h-3" /> &lt;60s
+            <AlertTriangle className="w-3 h-3" /> &lt;{warningThreshold}s
           </span>
         )}
       </div>
 
       <div className="flex items-baseline gap-2">
         <span
-          className={`font-mono text-4xl sm:text-5xl font-black tracking-tight ${
+          className={`font-mono text-3xl xs:text-4xl sm:text-5xl font-black tracking-tight ${
             isEndingSoon ? 'text-amber-400 animate-pulse' : 'text-white'
           }`}
         >

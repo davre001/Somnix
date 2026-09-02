@@ -23,9 +23,9 @@ export function AmountChips() {
             <button
               key={preset}
               onClick={() => setSelectedAmount(preset)}
-              className={`py-2.5 rounded-xl font-mono text-sm font-bold transition-all duration-150 flex items-center justify-center border ${
+              className={`min-h-[44px] py-2.5 rounded-xl font-mono text-sm font-bold transition-all duration-150 flex items-center justify-center border active:scale-[0.98] ${
                 isSelected
-                  ? 'bg-white text-black border-white shadow-lg shadow-white/10 scale-[1.02]'
+                  ? 'bg-white text-black border-white shadow-lg shadow-white/10 scale-[1.01]'
                   : 'bg-[#0f0f14] text-zinc-300 border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900'
               }`}
             >
@@ -40,9 +40,9 @@ export function AmountChips() {
             const next = selectedAmount === 50 ? 5 : selectedAmount === 25 ? 50 : 25;
             setSelectedAmount(next);
           }}
-          className={`py-2.5 rounded-xl font-mono text-xs font-bold transition-all duration-150 flex items-center justify-center border ${
+          className={`min-h-[44px] py-2.5 rounded-xl font-mono text-xs font-bold transition-all duration-150 flex items-center justify-center border active:scale-[0.98] ${
             !presets.includes(selectedAmount)
-              ? 'bg-white text-black border-white shadow-lg shadow-white/10 scale-[1.02]'
+              ? 'bg-white text-black border-white shadow-lg shadow-white/10 scale-[1.01]'
               : 'bg-[#0f0f14] text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-white'
           }`}
         >

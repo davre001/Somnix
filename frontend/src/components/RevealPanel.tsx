@@ -80,31 +80,31 @@ export function RevealPanel() {
   const isUserGreen = activeLock.side === 'green';
 
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col items-center text-center space-y-8 animate-in fade-in zoom-in-95 duration-400 py-6">
+    <div className="w-full max-w-2xl mx-auto flex flex-col items-center text-center space-y-6 sm:space-y-8 animate-in fade-in zoom-in-95 duration-400 py-4 sm:py-6 px-2 sm:px-0">
       {/* Window Tag */}
-      <div className="px-4 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400">
+      <div className="px-3.5 sm:px-4 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400">
         Window Expired · {activeLock.pair} {activeLock.length}
       </div>
 
       {/* Outcome Announcement */}
-      <div className="space-y-3">
+      <div className="space-y-2.5 sm:space-y-3">
         <div className="flex items-center justify-center gap-2">
           {userWon ? (
-            <div className="w-16 h-16 rounded-3xl bg-emerald-500 text-white flex items-center justify-center shadow-[0_0_40px_rgba(34,197,94,0.5)] animate-bounce">
-              <Trophy className="w-8 h-8" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-emerald-500 text-white flex items-center justify-center shadow-[0_0_40px_rgba(34,197,94,0.5)] animate-bounce">
+              <Trophy className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
           ) : (
-            <div className="w-16 h-16 rounded-3xl bg-red-950/80 border border-red-800 text-red-400 flex items-center justify-center shadow-[0_0_25px_rgba(239,68,68,0.3)]">
-              <Frown className="w-8 h-8" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-red-950/80 border border-red-800 text-red-400 flex items-center justify-center shadow-[0_0_25px_rgba(239,68,68,0.3)]">
+              <Frown className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
           )}
         </div>
 
-        <h1 className="text-4xl sm:text-5xl font-black tracking-tight uppercase text-white">
+        <h1 className="text-3xl xs:text-4xl sm:text-5xl font-black tracking-tight uppercase text-white">
           {userWon ? 'You won' : 'You lost'}
         </h1>
 
-        <p className="text-sm font-mono text-zinc-400">
+        <p className="text-xs sm:text-sm font-mono text-zinc-400">
           Your call was{' '}
           <span className={`font-bold uppercase ${isUserGreen ? 'text-emerald-400' : 'text-red-400'}`}>
             {activeLock.side} ({activeLock.amount} STT)
@@ -113,8 +113,8 @@ export function RevealPanel() {
       </div>
 
       {/* Result Breakdown Card */}
-      <div className="w-full p-6 rounded-3xl bg-[#0c0c10] border border-zinc-800 space-y-4 shadow-xl">
-        <div className="flex items-center justify-between text-xs font-mono pb-3 border-b border-zinc-800">
+      <div className="w-full p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#0c0c10] border border-zinc-800 space-y-3.5 sm:space-y-4 shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-mono pb-2.5 sm:pb-3 border-b border-zinc-800">
           <span className="text-zinc-400">Window Outcome:</span>
           <div className={`flex items-center gap-1.5 font-bold uppercase ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
             {isGreenResult ? (
@@ -126,14 +126,14 @@ export function RevealPanel() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-left text-xs font-mono">
-          <div className="p-4 rounded-2xl bg-black/60 border border-zinc-800/80">
-            <span className="text-[11px] text-zinc-500 uppercase block mb-1">Start Reference Price</span>
-            <span className="font-bold text-zinc-200 text-base sm:text-lg">${activeLock.startPrice.toLocaleString()}</span>
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 text-left text-xs font-mono">
+          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80">
+            <span className="text-[10px] sm:text-[11px] text-zinc-500 uppercase block mb-0.5 sm:mb-1">Start Price</span>
+            <span className="font-bold text-zinc-200 text-sm xs:text-base sm:text-lg font-mono">${activeLock.startPrice.toLocaleString()}</span>
           </div>
-          <div className="p-4 rounded-2xl bg-black/60 border border-zinc-800/80">
-            <span className="text-[11px] text-zinc-500 uppercase block mb-1">Final Settlement Price</span>
-            <span className={`font-bold text-base sm:text-lg ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80">
+            <span className="text-[10px] sm:text-[11px] text-zinc-500 uppercase block mb-0.5 sm:mb-1">Settlement Price</span>
+            <span className={`font-bold text-sm xs:text-base sm:text-lg font-mono ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
               ${resolution.endPrice.toLocaleString()}
             </span>
           </div>
@@ -151,10 +151,10 @@ export function RevealPanel() {
       )}
 
       {/* Share / Copy Link Row */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-1">
         <button
           onClick={handleCopyLink}
-          className="py-3 px-5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-mono font-bold text-white transition-all flex items-center justify-center gap-2 shadow-sm"
+          className="w-full py-3 px-5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-mono font-bold text-white transition-all flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
         >
           {copied ? (
             <>
@@ -171,7 +171,7 @@ export function RevealPanel() {
 
         <button
           onClick={() => setShareModalOpen(true)}
-          className="py-3 px-5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono text-zinc-300 hover:text-white transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3 px-5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono text-zinc-300 hover:text-white transition-colors flex items-center justify-center gap-2 active:scale-[0.98]"
         >
           <Share2 className="w-4 h-4 text-zinc-400" />
           <span>Share Friend Card</span>
@@ -179,15 +179,15 @@ export function RevealPanel() {
       </div>
 
       {/* Action Buttons with Liquid Metal Shader */}
-      <div className="w-full grid grid-cols-2 gap-4 pt-2">
+      <div className="w-full grid grid-cols-2 gap-2.5 sm:gap-4 pt-1">
         <LiquidMetalButton
           onClick={handleSameAgain}
           variant="green"
           fullWidth
-          height={52}
+          height={50}
         >
           <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
-            <RotateCw className="w-4 h-4" />
+            <RotateCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>Same Again</span>
           </div>
         </LiquidMetalButton>
@@ -195,11 +195,11 @@ export function RevealPanel() {
         <LiquidMetalButton
           onClick={handleHome}
           fullWidth
-          height={52}
+          height={50}
         >
           <div className="flex items-center gap-2 text-xs font-bold text-zinc-200 uppercase tracking-wider">
-            <span>Home Dashboard</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Dashboard</span>
+            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         </LiquidMetalButton>
       </div>
