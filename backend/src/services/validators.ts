@@ -1,4 +1,4 @@
-import type { MarketLength, MarketPair, MarketSide } from "../types/api.js";
+import type { ClaimRecord, MarketLength, MarketPair, MarketSide } from "../types/api.js";
 
 export function isValidPair(value: unknown): value is MarketPair {
   return value === "BTC" || value === "ETH";
@@ -10,6 +10,10 @@ export function isValidLength(value: unknown): value is MarketLength {
 
 export function isValidSide(value: unknown): value is MarketSide {
   return value === "green" || value === "red";
+}
+
+export function isValidClaimStatus(value: unknown): value is ClaimRecord["status"] {
+  return value === "pending" || value === "claimed" || value === "failed";
 }
 
 export function parsePositiveNumber(value: unknown): number | null {

@@ -341,6 +341,15 @@ class SqliteClaimRepository {
     };
   }
 
+  async updateClaimStatus(lockId: string, status: ClaimRecord["status"]): Promise<ClaimRecord | undefined> {
+    const claim = await this.getClaim(lockId);
+    if (!claim) return undefined;
+
+    claim.status = status;
+    await this.saveClaim(claim);
+    return claim;
+  }
+
   async listClaims(): Promise<ClaimRecord[]> {
     const rows = await all<any>(`SELECT * FROM claims ORDER BY claimedAt DESC`);
     return rows.map((row) => ({
@@ -390,6 +399,10 @@ class SqliteStore implements PersistenceStore {
 
   async getClaim(lockId: string): Promise<ClaimRecord | undefined> {
     return this.claims.getClaim(lockId);
+  }
+
+  async updateClaimStatus(lockId: string, status: ClaimRecord["status"]): Promise<ClaimRecord | undefined> {
+    return this.claims.updateClaimStatus(lockId, status);
   }
 
   async listClaims(): Promise<ClaimRecord[]> {

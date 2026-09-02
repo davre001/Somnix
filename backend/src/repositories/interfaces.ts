@@ -15,6 +15,7 @@ export interface TradeRepository {
 export interface ClaimRepository {
   saveClaim(claim: ClaimRecord): Promise<ClaimRecord>;
   getClaim(lockId: string): Promise<ClaimRecord | undefined>;
+  updateClaimStatus(lockId: string, status: ClaimRecord["status"]): Promise<ClaimRecord | undefined>;
   listClaims(): Promise<ClaimRecord[]>;
 }
 

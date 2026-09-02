@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createClaimRecord } from "../services/claimService.js";
-import { validateWalletAddress } from "../services/validators.js";
+import { isValidClaimStatus, validateWalletAddress } from "../services/validators.js";
 import { sqliteStore } from "../repositories/sqliteStore.js";
 
 export const claimRouter = Router();
@@ -16,6 +16,10 @@ claimRouter.post("/", async (req, res) => {
     return res.status(400).json({ ok: false, error: "lockId is required" });
   }
 
+  if (typeof txHash !== "string" || txHash.trim().length === 0) {
+    return res.status(400).json({ ok: false, error: "txHash is required" });
+  }
+
   const normalizedWallet = validateWalletAddress(walletAddress);
   const existingClaim = await sqliteStore.getClaim(lockId);
 
@@ -24,15 +28,32 @@ claimRouter.post("/", async (req, res) => {
   }
 
   const lock = await sqliteStore.getLock(lockId);
-  const payout = lock?.payout ?? 0;
-  const claim = createClaimRecord(lockId, normalizedWallet, payout);
-
-  if (typeof txHash === "string" && txHash.trim().length > 0) {
-    claim.txHash = txHash.trim();
+  if (!lock) {
+    return res.status(404).json({ ok: false, error: "Lock not found" });
   }
 
+  const claim = createClaimRecord(lockId, normalizedWallet, lock.payout, txHash.trim());
   await sqliteStore.saveClaim(claim);
   return res.status(201).json({ ok: true, data: claim });
+});
+
+claimRouter.patch("/:lockId/status", async (req, res) => {
+  const { status } = req.body ?? {};
+  if (!isValidClaimStatus(status)) {
+    return res.status(400).json({ ok: false, error: "status must be pending, claimed, or failed" });
+  }
+
+  const existingClaim = await sqliteStore.getClaim(req.params.lockId);
+  if (!existingClaim) {
+    return res.status(404).json({ ok: false, error: "Claim not found" });
+  }
+
+  if (existingClaim.status !== "pending" && existingClaim.status !== status) {
+    return res.status(409).json({ ok: false, error: "Claim has already been finalized" });
+  }
+
+  const claim = await sqliteStore.updateClaimStatus(req.params.lockId, status);
+  return res.json({ ok: true, data: claim });
 });
 
 claimRouter.get("/:id", async (req, res) => {

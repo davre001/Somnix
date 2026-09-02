@@ -48,6 +48,14 @@ class MemoryClaimRepository {
     return this.claims.get(lockId);
   }
 
+  async updateClaimStatus(lockId: string, status: ClaimRecord["status"]): Promise<ClaimRecord | undefined> {
+    const claim = this.claims.get(lockId);
+    if (!claim) return undefined;
+
+    claim.status = status;
+    return claim;
+  }
+
   async listClaims(): Promise<ClaimRecord[]> {
     return Array.from(this.claims.values());
   }
@@ -88,6 +96,10 @@ class MemoryStore implements PersistenceStore {
 
   async getClaim(lockId: string): Promise<ClaimRecord | undefined> {
     return this.claims.getClaim(lockId);
+  }
+
+  async updateClaimStatus(lockId: string, status: ClaimRecord["status"]): Promise<ClaimRecord | undefined> {
+    return this.claims.updateClaimStatus(lockId, status);
   }
 
   async listClaims(): Promise<ClaimRecord[]> {
