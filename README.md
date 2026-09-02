@@ -269,11 +269,11 @@ The backend has been scaffolded into the main application layers we will build o
 - DreamDEX and env helpers in [backend/src/lib/dreamdex.ts](backend/src/lib/dreamdex.ts) and [backend/src/lib/env.ts](backend/src/lib/env.ts)
 - HTTP route modules for markets, card, lock, trade, and claim in [backend/src/routes](backend/src/routes)
 - validation + service layer in [backend/src/services](backend/src/services)
-- in-memory persistence abstraction in [backend/src/repositories](backend/src/repositories)
+- SQLite-backed persistence abstraction in [backend/src/repositories](backend/src/repositories)
 - shared API contracts in [backend/src/types/api.ts](backend/src/types/api.ts)
 - error handling middleware in [backend/src/middleware/errorHandler.ts](backend/src/middleware/errorHandler.ts)
 
-This is deliberately structured so the app can later move from an in-memory store to a real database or DreamDEX-backed data source without rewriting the route layer.
+This is deliberately structured so the app can later move from SQLite to another database or DreamDEX-backed data source without rewriting the route layer.
 
 The current backend endpoints are grouped as:
 
@@ -283,7 +283,7 @@ The current backend endpoints are grouped as:
 - `/api/trade` — trade snapshot creation and lookup
 - `/api/claim` — claim creation and lookup
 
-The implementation is still a backend skeleton and not yet connected to the frontend or real blockchain execution.
+The backend is not yet connected to the frontend or real blockchain execution. SQLite currently stores lock, trade, and claim records locally; wallet signing and blockchain transactions remain client-side responsibilities.
 
 - Friend-card link (window + side, not your private keys)
 
@@ -297,8 +297,8 @@ The backend exists for the few things a browser should not do alone: talking to 
 
 ### What it is
 
-- A plain Express + TypeScript app, self-contained in `backend/` — its own `package.json`, `tsconfig.json`, `node_modules`, `.env.local`. No framework beyond Express, no database.
-- Run it with `cd backend && npm install && npm run dev`. It doesn't share a package.json or node_modules with the repo root or with the frontend — the frontend will be an equally self-contained `frontend/` once it exists, `cd`'d into the same way.
+- A plain Express + TypeScript app, self-contained in `backend/` — its own `package.json`, `tsconfig.json`, `node_modules`, `.env.local`, and local SQLite database file. No framework beyond Express.
+- Run it with `cd backend && npm install && npm run dev`. It doesn't share a package.json or node_modules with the repo root or with the self-contained `frontend/` app; each project is run from its own folder.
 - Runs on **port 4000** (`npm run dev` / `npm run start`), so port 3000 stays free for the frontend.
 - Everything a route returns is public, cacheable data. Nothing it does requires a signature.
 
@@ -310,7 +310,7 @@ The backend exists for the few things a browser should not do alone: talking to 
 | `GET /api/markets/:id/orderbook` | Resolves the market's pool address (`client.getMarket`) then reads `client.getBinaryOrderBook(pool)` for the odds bar  | Same as above — short-lived cache, one shape for the UI                                        |
 | `GET /api/card/:marketId/:side`  | Renders the friend/share card PNG (coin, window, side) as an SVG template rasterized with `sharp`                      | Social platforms fetch OG images server-side; a client-only page can't serve that              |
 
-Explicitly **not** here: creating orders, claiming, or anything touching a wallet — those stay in `lib/` on the client, same as `frontend_implementation.md` describes. Day budget, lock state, and recents also stay client-side (`localStorage`) — this is a hackathon build with no accounts, so there's nothing to key server storage on.
+Explicitly **not** here: creating orders, claiming, or anything touching a wallet — those stay in `lib/` on the client, same as `frontend_implementation.md` describes. Day budget and recents remain client-side (`localStorage`), while the backend SQLite store provides a persistence foundation for lock, trade, and claim records.
 
 There's no `/api/config` route: `@somnia-chain/markets-sdk` ships the testnet chain definition (`somniaShannon`, from `@somnia-chain/markets-sdk/chains`) and the protocol's contract addresses (`SOMNIA_TESTNET_ADDRESSES`) as public constants. Both frontend and backend import them directly from the package — nothing deployment-specific to route through a server.
 
@@ -331,11 +331,19 @@ backend/
     routes/
       markets.ts                # GET /api/markets, GET /api/markets/:id/orderbook
       card.ts                   # GET /api/card/:marketId/:side
+      lock.ts                   # Lock creation and lookup
+      trade.ts                  # Trade snapshot creation and lookup
+      claim.ts                  # Claim creation and lookup
     lib/
       dreamdex.ts               # SomniaMarkets client (indexerUrl + testnet chain/addresses) + short TTL cache
       env.ts                    # typed server env (indexer URL, optional admin secret)
+    services/                   # Service logic and request validation
+    repositories/               # Persistence interfaces and SQLite implementation
+    types/api.ts                # Shared API contracts
+    middleware/                 # Error and not-found handlers
   package.json                  # scripts: dev (tsx watch), build (tsc), start (node dist/index.js)
   tsconfig.json                 # compiles src/**/*.ts -> dist/
+  somnix.db                     # Local SQLite database created at runtime
   .env.local                    # gitignored; DREAMDEX_INDEXER_URL etc.
   .env.example
 ```
@@ -368,4 +376,10 @@ npm install
 npm run dev                  # http://localhost:4000
 ```
 
-Frontend: not built yet — will get its own `frontend/` folder, `package.json`, and `npm install`/`npm run dev`, run the same way from inside `frontend/`, on port 3000.
+Frontend:
+
+```bash
+cd somnix/frontend
+npm install
+npm run dev               # http://localhost:3000
+```
