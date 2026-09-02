@@ -1,8 +1,10 @@
+import path from "node:path";
 import sqlite3 from "sqlite3";
 import type { ClaimRecord, LockRecord, TradeSnapshot } from "../types/api.js";
 import type { PersistenceStore } from "./interfaces.js";
 
-const db = new sqlite3.Database("./somnix.db");
+const databasePath = process.env.SOMNIX_DB_PATH ?? path.resolve(process.cwd(), "somnix.db");
+const db = new sqlite3.Database(databasePath);
 
 const initDatabasePromise = new Promise<void>((resolve, reject) => {
   db.serialize(() => {
@@ -396,3 +398,16 @@ export const sqliteStore = new SqliteStore();
 export const lockRepository = sqliteStore.locks;
 export const tradeRepository = sqliteStore.trades;
 export const claimRepository = sqliteStore.claims;
+
+export async function closeSqliteStore(): Promise<void> {
+  await initDatabasePromise;
+  await new Promise<void>((resolve, reject) => {
+    db.close((err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve();
+    });
+  });
+}

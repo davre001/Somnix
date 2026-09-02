@@ -6,6 +6,7 @@ import { cardRouter } from "./routes/card.js";
 import { lockRouter } from "./routes/lock.js";
 import { tradeRouter } from "./routes/trade.js";
 import { claimRouter } from "./routes/claim.js";
+import { closeSqliteStore } from "./repositories/sqliteStore.js";
 
 // Resolved from cwd, not __dirname: dev runs src/index.ts directly (tsx),
 // prod runs the flattened dist/index.js (tsc, rootDir src) — those sit at
@@ -25,6 +26,26 @@ app.use("/api/trade", tradeRouter);
 app.use("/api/claim", claimRouter);
 
 const port = Number(process.env.PORT ?? 4000);
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`SOMNIX backend listening on http://localhost:${port}`);
 });
+
+async function shutdown(signal: string) {
+  console.log(`${signal} received, shutting down SOMNIX backend`);
+  server.close(async (serverError) => {
+    if (serverError) {
+      console.error("Failed to close HTTP server", serverError);
+      process.exitCode = 1;
+    }
+
+    try {
+      await closeSqliteStore();
+    } catch (databaseError) {
+      console.error("Failed to close SQLite database", databaseError);
+      process.exitCode = 1;
+    }
+  });
+}
+
+process.once("SIGINT", () => void shutdown("SIGINT"));
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
