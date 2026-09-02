@@ -1,4 +1,4 @@
-import { MarketWindow, UserLock, RecentWindow, WindowPair, WindowLength, MarketSide } from './types';
+import { MarketWindow, UserLock, RecentWindow, WindowPair, WindowLength, MarketSide, PendingLockIntent } from './types';
 
 const STORAGE_KEYS = {
   ACTIVE_LOCK: 'somnix_active_lock_v1',
@@ -6,13 +6,16 @@ const STORAGE_KEYS = {
   RECENT_WINDOWS: 'somnix_recent_windows_v1',
   DAILY_BUDGET: 'somnix_daily_budget_v1',
   WATCH_MODE: 'somnix_watch_mode_v1',
+  PENDING_LOCK: 'somnix_pending_lock_v1',
 };
 
-// Base market prices
+// Base fallback market prices
 const BASE_PRICES: Record<WindowPair, number> = {
   BTC: 64820.50,
   ETH: 3485.20,
 };
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
 
 /**
  * Returns duration in milliseconds for a window length
@@ -43,7 +46,7 @@ export function getCurrentWindowBounds(length: WindowLength): { startTime: numbe
 }
 
 /**
- * Generates market window object for pair and length
+ * Generates fallback/synchronous market window object for pair and length
  */
 export function getMarketWindow(pair: WindowPair, length: WindowLength): MarketWindow {
   const { startTime, endTime } = getCurrentWindowBounds(length);
@@ -70,10 +73,90 @@ export function getMarketWindow(pair: WindowPair, length: WindowLength): MarketW
     currentPrice,
     greenOdds,
     redOdds,
-    isLive: true,
+    // Overwritten by fetchLiveMarkets — this synthetic window has no real market behind it yet.
+    isLive: false,
     minAmount: 1,
     maxAmount: 100,
   };
+}
+
+/**
+ * Checks the backend proxy for a real, currently-tradable DreamDEX market for this
+ * exact pair + window length. Returns the synthetic window (isLive: false) when none
+ * is live right now — this pair/length simply isn't tradable at this moment.
+ */
+export async function fetchLiveMarkets(pair: WindowPair, length: WindowLength): Promise<MarketWindow> {
+  const fallback = getMarketWindow(pair, length);
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+
+    const res = await fetch(`${BACKEND_URL}/api/markets`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.markets && Array.isArray(data.markets) && data.markets.length > 0) {
+        // Backend proxies DreamDEX `BinaryMarket` rows: asset is the underlying
+        // symbol (e.g. "BTC"), interval is the series cadence label ("1m".."24h"),
+        // id is the real marketId used by the orderbook route.
+        const matched = data.markets.find(
+          (m: { id?: string; asset?: string; interval?: string | null }) =>
+            m.asset === pair && m.interval === length
+        );
+        if (matched?.id) {
+          return {
+            ...fallback,
+            id: matched.id,
+            isLive: true,
+          };
+        }
+      }
+    }
+  } catch {
+    // Graceful offline fallback
+  }
+
+  return fallback;
+}
+
+/**
+ * Attempts to fetch live orderbook odds from backend proxy
+ */
+export async function fetchLiveOdds(marketId: string): Promise<{ greenOdds: number; redOdds: number } | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+
+    const res = await fetch(`${BACKEND_URL}/api/markets/${encodeURIComponent(marketId)}/orderbook`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.orderBook) {
+        const yesBids = data.orderBook.yesBids || [];
+        const noBids = data.orderBook.noBids || [];
+
+        if (yesBids.length > 0 && noBids.length > 0) {
+          const yesPrice = parseFloat(yesBids[0].price);
+          const noPrice = parseFloat(noBids[0].price);
+          const total = yesPrice + noPrice;
+          if (total > 0) {
+            const greenOdds = Math.round((yesPrice / total) * 100);
+            return { greenOdds, redOdds: 100 - greenOdds };
+          }
+        }
+      }
+    }
+  } catch {
+    // Offline fallback
+  }
+
+  return null;
 }
 
 /**
@@ -105,54 +188,65 @@ export function saveActiveLock(lock: UserLock | null): void {
 }
 
 /**
- * Create a new lock on a market window
+ * Persists intent to place a lock BEFORE the order is sent to the wallet — the
+ * idempotency-key-before-broadcast rule. If the app never comes back (tab closed,
+ * crash) between the wallet confirming and the order resolving, this is what lets
+ * a reload recover a real fill the app would otherwise have no record of.
+ */
+export function savePendingLockIntent(intent: PendingLockIntent): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_KEYS.PENDING_LOCK, JSON.stringify(intent));
+}
+
+export function loadPendingLockIntent(): PendingLockIntent | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.PENDING_LOCK);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingLockIntent(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEYS.PENDING_LOCK);
+}
+
+/**
+ * Records a lock the user just placed via a real on-chain order (see exchange.ts#lockPosition).
  */
 export function createLock(
   market: MarketWindow,
   side: MarketSide,
-  amount: number
+  amount: number,
+  order: { filled: number; price: number; txHash: string },
+  customId?: string
 ): UserLock {
+  const lockId = customId || `lock-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const lock: UserLock = {
-    id: `lock-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: lockId,
     marketId: market.id,
     pair: market.pair,
     length: market.length,
     side,
     amount,
+    payout: order.filled,
+    price: order.price,
     lockedAt: Date.now(),
     hidePriceUntil: market.endTime,
     status: 'locked',
-    payout: Number((amount * 1.92).toFixed(2)), // Standard binary payout ~1.92x
     startPrice: market.startPrice,
+    txHash: order.txHash || undefined,
   };
 
+  // Persist immediately before transaction broadcast
   saveActiveLock(lock);
   return lock;
 }
 
 /**
- * Resolves a locked window when it reaches 0:00
- */
-export function resolveLock(lock: UserLock): { resultSide: MarketSide; userWon: boolean; endPrice: number } {
-  // Deterministic result based on market ID hash so it remains consistent
-  let hash = 0;
-  for (let i = 0; i < lock.marketId.length; i++) {
-    hash = (hash << 5) - hash + lock.marketId.charCodeAt(i);
-    hash |= 0;
-  }
-  
-  const isUp = Math.abs(hash) % 2 === 0;
-  const resultSide: MarketSide = isUp ? 'green' : 'red';
-  const userWon = lock.side === resultSide;
-  
-  const priceDelta = (isUp ? 1 : -1) * (lock.pair === 'BTC' ? 42.50 : 4.80);
-  const endPrice = Number((lock.startPrice + priceDelta).toFixed(2));
-
-  return { resultSide, userWon, endPrice };
-}
-
-/**
- * Initial sample recents data if none in storage
+ * User's recent windows, most recent first. Empty until they claim or settle their first lock.
  */
 export function getRecentWindows(): RecentWindow[] {
   if (typeof window === 'undefined') return [];
@@ -162,88 +256,7 @@ export function getRecentWindows(): RecentWindow[] {
   } catch {
     // fallback
   }
-
-  // Pre-seed realistic past windows
-  const now = Date.now();
-  const fifteenMin = 15 * 60 * 1000;
-  const initialRecents: RecentWindow[] = [
-    {
-      id: `BTC-15m-${now - fifteenMin}`,
-      pair: 'BTC',
-      length: '15m',
-      startTime: now - (fifteenMin * 2),
-      endTime: now - fifteenMin,
-      startPrice: 64790.00,
-      endPrice: 64845.20,
-      resultSide: 'green',
-      userPlayed: true,
-      userSide: 'green',
-      userAmount: 10,
-      userResult: 'right',
-      claimed: true,
-      txHash: '0x7f2a...91b4',
-    },
-    {
-      id: `ETH-15m-${now - fifteenMin}`,
-      pair: 'ETH',
-      length: '15m',
-      startTime: now - (fifteenMin * 2),
-      endTime: now - fifteenMin,
-      startPrice: 3492.10,
-      endPrice: 3481.50,
-      resultSide: 'red',
-      userPlayed: false,
-      userResult: 'skipped',
-    },
-    {
-      id: `BTC-1h-${now - fifteenMin * 4}`,
-      pair: 'BTC',
-      length: '1h',
-      startTime: now - (fifteenMin * 8),
-      endTime: now - (fifteenMin * 4),
-      startPrice: 64510.00,
-      endPrice: 64780.00,
-      resultSide: 'green',
-      userPlayed: true,
-      userSide: 'green',
-      userAmount: 25,
-      userResult: 'right',
-      claimed: true,
-      txHash: '0x3c11...884d',
-    },
-    {
-      id: `BTC-15m-${now - fifteenMin * 3}`,
-      pair: 'BTC',
-      length: '15m',
-      startTime: now - (fifteenMin * 4),
-      endTime: now - (fifteenMin * 3),
-      startPrice: 64850.00,
-      endPrice: 64810.00,
-      resultSide: 'red',
-      userPlayed: true,
-      userSide: 'green',
-      userAmount: 5,
-      userResult: 'wrong',
-      claimed: false,
-    },
-    {
-      id: `ETH-1h-${now - fifteenMin * 5}`,
-      pair: 'ETH',
-      length: '1h',
-      startTime: now - (fifteenMin * 9),
-      endTime: now - (fifteenMin * 5),
-      startPrice: 3510.40,
-      endPrice: 3495.00,
-      resultSide: 'red',
-      userPlayed: false,
-      userResult: 'skipped',
-    },
-  ];
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.RECENT_WINDOWS, JSON.stringify(initialRecents));
-  }
-  return initialRecents;
+  return [];
 }
 
 export function addRecentWindow(recent: RecentWindow): void {

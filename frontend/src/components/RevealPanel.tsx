@@ -2,26 +2,44 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useSomnix } from '@/lib/useSomnix';
-import { resolveLock } from '@/lib/marketService';
+import { getResolution, type MarketResolution } from '@/lib/exchange';
 import { ClaimButton } from './ClaimButton';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
-import { TrendingUp, TrendingDown, ArrowRight, RotateCw, Trophy, Frown, Copy, Check, Share2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight, RotateCw, Trophy, Frown, Copy, Check, Share2, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { generateTradeShareUrl, userLockToSharedTrade } from '@/lib/tradeShare';
 import { ShareCard } from '@/components/ShareCard';
 
 export function RevealPanel() {
   const router = useRouter();
-  const { activeLock, prepareSameAgain, clearLock } = useSomnix();
+  const { activeLock, wallet, prepareSameAgain, clearLock } = useSomnix();
   const [claimedTx, setClaimedTx] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [resolution, setResolution] = useState<MarketResolution | null>(null);
 
-  const resolution = activeLock ? resolveLock(activeLock) : null;
-  const userWon = resolution?.userWon ?? false;
-  const resultSide = resolution?.resultSide ?? 'green';
+  // The window's local countdown hitting 0:00 only means trading stopped — the
+  // oracle still needs to actually settle the market on-chain, which can lag,
+  // so this keeps polling until it has.
+  useEffect(() => {
+    if (!activeLock) return;
+    let cancelled = false;
+    async function poll() {
+      const res = await getResolution(activeLock!.marketId);
+      if (!cancelled) setResolution(res);
+    }
+    poll();
+    const interval = setInterval(poll, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [activeLock]);
+
+  const userWon = Boolean(
+    resolution?.resolved && !resolution.voided && activeLock && resolution.winningSide === activeLock.side
+  );
 
   useEffect(() => {
     if (userWon) {
@@ -34,7 +52,7 @@ export function RevealPanel() {
     }
   }, [userWon]);
 
-  if (!activeLock || !resolution) {
+  if (!activeLock) {
     return (
       <div className="w-full text-center py-16 space-y-4">
         <p className="text-zinc-400 font-mono text-sm">No active window to reveal.</p>
@@ -50,13 +68,28 @@ export function RevealPanel() {
     );
   }
 
-  const handleCopyLink = () => {
-    const sharedData = userLockToSharedTrade(
-      activeLock,
-      resolution.endPrice,
-      userWon,
-      resultSide
+  if (!resolution?.resolved) {
+    return (
+      <div className="w-full max-w-lg mx-auto text-center py-16 space-y-4">
+        <Loader2 className="w-8 h-8 text-zinc-400 mx-auto animate-spin" />
+        <h1 className="text-2xl font-black tracking-tight uppercase text-white">Waiting on DreamDEX</h1>
+        <p className="text-zinc-400 font-mono text-sm">
+          Trading closed on {activeLock.pair} {activeLock.length}. The oracle hasn&apos;t settled this window on-chain yet — this can take a short while.
+        </p>
+        <LiquidMetalButton onClick={() => router.push('/')} variant="silver" height={46} width={240}>
+          <span className="text-xs font-bold uppercase text-black">Back to Dashboard</span>
+        </LiquidMetalButton>
+      </div>
     );
+  }
+
+  const isVoided = resolution.voided;
+  const resultSide = isVoided ? undefined : resolution.winningSide;
+  const isGreenResult = resultSide === 'green';
+  const isUserGreen = activeLock.side === 'green';
+
+  const handleCopyLink = () => {
+    const sharedData = userLockToSharedTrade(activeLock, userWon, resultSide);
     const url = generateTradeShareUrl(sharedData);
     if (url) {
       navigator.clipboard.writeText(url);
@@ -76,20 +109,21 @@ export function RevealPanel() {
     router.push('/');
   };
 
-  const isGreenResult = resultSide === 'green';
-  const isUserGreen = activeLock.side === 'green';
-
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col items-center text-center space-y-6 sm:space-y-8 animate-in fade-in zoom-in-95 duration-400 py-4 sm:py-6 px-2 sm:px-0">
       {/* Window Tag */}
       <div className="px-3.5 sm:px-4 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400">
-        Window Expired · {activeLock.pair} {activeLock.length}
+        Window Resolved · {activeLock.pair} {activeLock.length}
       </div>
 
       {/* Outcome Announcement */}
       <div className="space-y-2.5 sm:space-y-3">
         <div className="flex items-center justify-center gap-2">
-          {userWon ? (
+          {isVoided ? (
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center">
+              <RotateCw className="w-7 h-7 sm:w-8 sm:h-8" />
+            </div>
+          ) : userWon ? (
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-emerald-500 text-white flex items-center justify-center shadow-[0_0_40px_rgba(34,197,94,0.5)] animate-bounce">
               <Trophy className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
@@ -101,18 +135,19 @@ export function RevealPanel() {
         </div>
 
         <h1 className="text-3xl xs:text-4xl sm:text-5xl font-black tracking-tight uppercase text-white">
-          {userWon ? 'You won' : 'You lost'}
+          {isVoided ? 'Market voided' : userWon ? 'You won' : 'You lost'}
         </h1>
 
         <p className="text-xs sm:text-sm font-mono text-zinc-400">
           Your call was{' '}
           <span className={`font-bold uppercase ${isUserGreen ? 'text-emerald-400' : 'text-red-400'}`}>
-            {activeLock.side} ({activeLock.amount} STT)
+            {activeLock.side} ({activeLock.amount} {wallet.currencySymbol})
           </span>
         </p>
       </div>
 
       {/* Result Breakdown Card */}
+<<<<<<< Updated upstream
       <div className="w-full p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#0c0c10] border border-zinc-800 space-y-3.5 sm:space-y-4 shadow-xl">
         <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-mono pb-2.5 sm:pb-3 border-b border-zinc-800">
           <span className="text-zinc-400">Window Outcome:</span>
@@ -138,15 +173,40 @@ export function RevealPanel() {
             </span>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 text-left text-xs font-mono">
+          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80">
+            <span className="text-[10px] sm:text-[11px] text-zinc-500 uppercase block mb-0.5 sm:mb-1">Start Price</span>
+            <span className="font-bold text-zinc-200 text-sm xs:text-base sm:text-lg font-mono">${activeLock.startPrice.toLocaleString()}</span>
+          </div>
+          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-black/60 border border-zinc-800/80">
+            <span className="text-[10px] sm:text-[11px] text-zinc-500 uppercase block mb-0.5 sm:mb-1">Settlement Price</span>
+            <span className={`font-bold text-sm xs:text-base sm:text-lg font-mono ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
+              ${resolution.endPrice.toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {isVoided && (
+          <div className="text-xs font-mono text-center text-zinc-300 pt-1">
+            <span className="font-bold uppercase text-zinc-300">Voided · Refundable</span>
+          </div>
+        )}
+      </div>
       </div>
 
       {/* Payout / Claim Section */}
-      {userWon && (
-        <div className="w-full">
+      {(userWon || isVoided) && (
+        <div className="w-full space-y-2">
           <ClaimButton
             lock={activeLock}
             onClaimSuccess={(tx) => setClaimedTx(tx || null)}
           />
+          {claimedTx && (
+            <p className="text-[11px] text-emerald-400 font-mono">
+              Confirmed on Somnia: {claimedTx}
+            </p>
+          )}
         </div>
       )}
 

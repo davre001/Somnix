@@ -24,10 +24,7 @@ import {
   TrendingUp,
   TrendingDown,
   Info,
-  Clock,
-  Zap,
   ArrowRight,
-  ExternalLink,
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -36,9 +33,7 @@ export default function HomePage() {
     hasEnteredApp,
     isViewingLanding,
     selectedPair,
-    setSelectedPair,
     selectedLength,
-    setSelectedLength,
     currentMarket,
     remainingSeconds,
     lockValidation,
@@ -165,7 +160,7 @@ export default function HomePage() {
                     </h3>
                   </div>
                   <span className="text-xs font-mono font-bold text-white">
-                    {budgetLeft.toFixed(0)} STT left
+                    {budgetLeft.toFixed(0)} {wallet.currencySymbol} left
                   </span>
                 </div>
 
@@ -175,8 +170,8 @@ export default function HomePage() {
 
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] font-mono text-zinc-500">
-                    <span>Spent: {wallet.dailyBudgetSpent.toFixed(0)} STT</span>
-                    <span>Max: {wallet.dailyBudgetTotal} STT</span>
+                    <span>Spent: {wallet.dailyBudgetSpent.toFixed(0)} {wallet.currencySymbol}</span>
+                    <span>Max: {wallet.dailyBudgetTotal} {wallet.currencySymbol}</span>
                   </div>
                   <div className="w-full h-2 bg-black rounded-full overflow-hidden border border-zinc-800">
                     <div
@@ -211,7 +206,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex justify-between text-zinc-400">
                   <span>Payout Rule:</span>
-                  <span className="text-zinc-200">~1.92x Binary</span>
+                  <span className="text-zinc-200">Live order book price</span>
                 </div>
                 <div className="flex justify-between text-zinc-400">
                   <span>Post-Lock Price:</span>

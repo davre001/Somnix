@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { decodeTradeShareUrl, SharedTradeData } from '@/lib/tradeShare';
+import { decodeTradeShareUrl } from '@/lib/tradeShare';
+import { useSomnix } from '@/lib/useSomnix';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
 import {
   TrendingUp,
@@ -13,27 +14,20 @@ import {
   Shield,
   Clock,
   Zap,
-  ExternalLink,
   ArrowRight,
-  Eye,
   CheckCircle2,
   XCircle,
-  Share2,
   Sparkles,
 } from 'lucide-react';
 
 function TradeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [trade, setTrade] = useState<SharedTradeData | null>(null);
+  const { wallet } = useSomnix();
+  const trade = useMemo(() => decodeTradeShareUrl(searchParams), [searchParams]);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>('');
   const [isExpired, setIsExpired] = useState(false);
-
-  useEffect(() => {
-    const decoded = decodeTradeShareUrl(searchParams);
-    setTrade(decoded);
-  }, [searchParams]);
 
   useEffect(() => {
     if (!trade || !trade.hidePriceUntil) return;
@@ -75,7 +69,7 @@ function TradeContent() {
   const isGreen = trade.side === 'green';
   const isResolved = trade.status === 'won' || trade.status === 'lost' || trade.status === 'claimed' || (trade.endPrice !== undefined) || isExpired;
   const isWon = trade.userWon ?? (trade.status === 'won' || trade.status === 'claimed' || (trade.resultSide ? trade.resultSide === trade.side : false));
-  const isLive = !isResolved && (trade.hidePriceUntil ? trade.hidePriceUntil > Date.now() : trade.status === 'locked');
+  const isLive = !isResolved && !isExpired && trade.status === 'locked';
 
   const formattedDate = new Date(trade.lockedAt).toLocaleDateString('en-US', {
     month: 'short',
@@ -190,11 +184,13 @@ function TradeContent() {
                 Stake Amount
               </span>
               <span className="text-xl sm:text-2xl font-black text-white font-mono">
-                {trade.amount} STT
+                {trade.amount} {wallet.currencySymbol}
               </span>
-              <span className="text-[11px] font-mono text-emerald-400 block">
-                Target Payout: +{trade.payout || (trade.amount * 1.92).toFixed(1)} STT
-              </span>
+              {trade.payout !== undefined && (
+                <span className="text-[11px] font-mono text-emerald-400 block">
+                  If right: +{trade.payout.toFixed(2)} {wallet.currencySymbol}
+                </span>
+              )}
             </div>
           </div>
 
@@ -260,7 +256,7 @@ function TradeContent() {
                 <Shield className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Hard Cap Protection</span>
               </span>
-              <span className="text-white font-bold">Max Loss = {trade.amount} STT</span>
+              <span className="text-white font-bold">Max Loss = {trade.amount} {wallet.currencySymbol}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-zinc-300">

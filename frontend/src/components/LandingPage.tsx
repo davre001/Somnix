@@ -570,6 +570,7 @@ export function LandingPage() {
                 <li><span className="text-zinc-300">Hard Cap Loss Guarantee</span></li>
                 <li><span className="text-zinc-300">Zen Lock Timers</span></li>
                 <li><span className="text-zinc-300">~1.92x Binary Multiplier</span></li>
+                <li><span className="text-zinc-300">Live Order Book Pricing</span></li>
               </ul>
             </div>
           </div>

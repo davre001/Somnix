@@ -1,0 +1,202 @@
+'use client';
+
+import {
+  SomniaMarkets,
+  SOMNIA_TESTNET_ADDRESSES,
+  SomniaMarketsError,
+  SignerRequiredError,
+  InvalidInputError,
+  ContractRevertError,
+  IndexerError,
+  RpcError,
+  NotConfiguredError,
+  type UnifiedMarket,
+} from '@somnia-chain/markets-sdk';
+import { somniaShannon } from '@somnia-chain/markets-sdk/chains';
+import type { WalletClient } from 'viem';
+import { MarketSide, WindowLength, WindowPair, PendingLockIntent } from './types';
+import { savePendingLockIntent, clearPendingLockIntent } from './marketService';
+
+const INDEXER_URL =
+  process.env.NEXT_PUBLIC_DREAMDEX_INDEXER_URL || 'https://indexer-testnet.somnia.network/v1/graphql';
+
+let exchange: SomniaMarkets | null = null;
+
+function getExchange(): SomniaMarkets {
+  if (!exchange) {
+    exchange = new SomniaMarkets({
+      chain: somniaShannon,
+      indexerUrl: INDEXER_URL,
+      addresses: SOMNIA_TESTNET_ADDRESSES,
+    });
+  }
+  return exchange;
+}
+
+/** Binds (or, called with undefined, clears) the signer used for locks, claims and the faucet. */
+export function bindExchangeSigner(walletClient: WalletClient | undefined): void {
+  getExchange().setSigner(walletClient ? { walletClient } : {});
+}
+
+/** Turns any error the exchange throws into a message safe to show a user. */
+export function describeExchangeError(err: unknown): string {
+  if (err instanceof SignerRequiredError) return 'Connect your wallet to continue.';
+  if (err instanceof ContractRevertError) {
+    const detail = err.errorName || err.reason;
+    return `The network rejected this transaction${detail ? `: ${detail}` : '.'}`;
+  }
+  if (err instanceof InvalidInputError) return err.message;
+  if (err instanceof IndexerError) return 'Somnia indexer is unreachable right now — try again shortly.';
+  if (err instanceof RpcError) return 'Could not reach the Somnia network — check your connection and try again.';
+  if (err instanceof NotConfiguredError) return `Missing configuration: ${err.what}.`;
+  if (err instanceof SomniaMarketsError) return err.message;
+  const rejected = err as { code?: number };
+  if (rejected?.code === 4001) return 'Rejected in wallet.';
+  if (err instanceof Error) return err.message;
+  return 'Something went wrong.';
+}
+
+/**
+ * Three-state read on a failed lock/claim attempt: does this error prove the
+ * transaction never reached the chain (safe to discard), or is it genuinely
+ * unknown whether it landed (a timeout, a dropped connection — must be
+ * reconciled later, never treated as "it didn't happen")?
+ *
+ * - InvalidInputError / SignerRequiredError / NotConfiguredError: never left the client.
+ * - ContractRevertError: reverted — chain-confirmed it did NOT happen.
+ * - IndexerError while placing an order: the read needed to price/send the order
+ *   never completed, so nothing was sent.
+ * - Wallet rejection (code 4001): the user declined — nothing was sent.
+ * - RpcError, or anything else unrecognized (a raw fetch/network failure): the
+ *   request may have reached the node with no answer coming back — ambiguous.
+ */
+export function isAmbiguousTxError(err: unknown): boolean {
+  if (
+    err instanceof SignerRequiredError ||
+    err instanceof InvalidInputError ||
+    err instanceof NotConfiguredError ||
+    err instanceof ContractRevertError ||
+    err instanceof IndexerError
+  ) {
+    return false;
+  }
+  const rejected = err as { code?: number };
+  if (rejected?.code === 4001) return false;
+  return true;
+}
+
+// Real on-chain BinaryMarket series run at these cadences; the picker's window
+// lengths map onto them 1:1 by label, so no separate lookup table is needed.
+const OUTCOME_LABEL: Record<MarketSide, 'YES' | 'NO'> = { green: 'YES', red: 'NO' };
+
+/** The live, currently-tradable BinaryMarket for this pair + window length, or null if the venue has none right now. */
+export async function findLiveMarket(pair: WindowPair, length: WindowLength): Promise<UnifiedMarket | null> {
+  const ex = getExchange();
+  await ex.loadMarkets();
+  for (const market of Object.values(ex.markets)) {
+    if (market.type !== 'binary') continue;
+    const info = market.info as { asset?: string; interval?: string | null };
+    if (info.asset === pair && info.interval === length) return market;
+  }
+  return null;
+}
+
+export interface LockResult {
+  hash: string;
+  filled: number;
+  price: number;
+}
+
+/** Buys the outcome token for `side` on `market` with `amount` collateral (a real market order against the live book). */
+export async function lockPosition(market: UnifiedMarket, side: MarketSide, amount: number): Promise<LockResult> {
+  const ex = getExchange();
+  const label = OUTCOME_LABEL[side];
+  const outcome = market.outcomes?.find((o) => o.label === label);
+  if (!outcome) throw new InvalidInputError(`${market.symbol} has no ${label} outcome`);
+  const order = await ex.createOrder(outcome.symbol, 'market', 'buy', amount, undefined, { slippage: 0.03 });
+  return { hash: order.txHash ?? '', filled: order.filled, price: order.price ?? 0 };
+}
+
+/**
+ * The reliability-critical wrapper around a lock send: persists the pending
+ * intent BEFORE `send()` runs, and only ever clears it once we can PROVE the
+ * order didn't reach the chain (see isAmbiguousTxError) — an ambiguous
+ * failure leaves it in place for reconcilePendingLock to resolve later.
+ *
+ * `send` is injected rather than calling lockPosition directly so this
+ * ordering guarantee is unit-testable without a live SDK/wallet — see
+ * __tests__/exchange.test.ts.
+ */
+export async function lockWithIntent(intent: PendingLockIntent, send: () => Promise<LockResult>): Promise<LockResult> {
+  savePendingLockIntent(intent);
+  try {
+    const result = await send();
+    clearPendingLockIntent();
+    return result;
+  } catch (err) {
+    if (!isAmbiguousTxError(err)) clearPendingLockIntent();
+    throw err;
+  }
+}
+
+/**
+ * How much of `side`'s outcome token the connected wallet actually holds on
+ * `marketId` — the ground truth used to reconcile a lock intent whose result
+ * was never confirmed (see useSomnix#reconcilePendingLock). Requires a signer.
+ */
+export async function checkFilledAmount(marketId: string, side: MarketSide): Promise<number> {
+  const ex = getExchange();
+  await ex.loadMarkets();
+  const market = Object.values(ex.markets).find((m) => m.id === marketId);
+  if (!market) return 0;
+  const outcome = market.outcomes?.find((o) => o.label === OUTCOME_LABEL[side]);
+  if (!outcome) return 0;
+  const balances = await ex.fetchBalance();
+  return balances[outcome.symbol]?.total ?? 0;
+}
+
+// A same-block/just-broadcast reconciliation check can read a real order's
+// balance as 0 before it mines — that's "unknown," not "didn't happen," so a
+// pending intent isn't discarded until it's been given this long to land.
+const RECONCILE_GRACE_MS = 30_000;
+
+export type ReconcileOutcome = 'recovered' | 'discarded' | 'pending';
+
+/**
+ * What to do with a pending lock intent given the wallet's real outcome-token
+ * balance for it: promote it to a real lock (filled), discard it (confirmed
+ * zero, and old enough that "still pending on-chain" isn't a plausible
+ * explanation anymore), or leave it alone (too recent to be conclusive).
+ */
+export function reconcileOutcome(intent: PendingLockIntent, filledAmount: number, now: number = Date.now()): ReconcileOutcome {
+  if (filledAmount > 0) return 'recovered';
+  return now - intent.createdAt > RECONCILE_GRACE_MS ? 'discarded' : 'pending';
+}
+
+export interface MarketResolution {
+  resolved: boolean;
+  voided: boolean;
+  winningSide?: MarketSide;
+}
+
+/** Whether `marketId` has resolved on-chain yet, and which side won. */
+export async function getResolution(marketId: string): Promise<MarketResolution> {
+  const ex = getExchange();
+  const market = await ex.client.getMarket(marketId);
+  if (!market || market.marketType !== 'BINARY') return { resolved: false, voided: false };
+  if (market.voided) return { resolved: true, voided: true };
+  if (market.winningOutcome == null) return { resolved: false, voided: false };
+  return { resolved: true, voided: false, winningSide: market.winningOutcome === 0 ? 'green' : 'red' };
+}
+
+/** Redeems `amount` of the winning outcome token on `marketId` for collateral. */
+export async function claimWinnings(marketId: string, amount: number): Promise<{ hash: string }> {
+  const res = await getExchange().redeem(marketId, amount);
+  return { hash: res.hash };
+}
+
+/** Mints test collateral to the connected signer (testnet faucet — no-op on mainnet). */
+export async function requestFaucet(): Promise<{ hash: string }> {
+  const res = await getExchange().trader.faucet({});
+  return { hash: res.hash };
+}

@@ -4,21 +4,27 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSomnix } from '@/lib/useSomnix';
-import { Shield, EyeOff, History, Moon, ArrowRight, Copy, Check, Share2 } from 'lucide-react';
+import { EyeOff, History, Moon, ArrowRight, Copy, Check, Share2 } from 'lucide-react';
 import { generateTradeShareUrl, userLockToSharedTrade } from '@/lib/tradeShare';
 import { ShareCard } from '@/components/ShareCard';
-import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
 
 export function LockPanel() {
   const router = useRouter();
-  const { activeLock } = useSomnix();
-  const [timeLeftMs, setTimeLeftMs] = useState<number>(0);
+  const { activeLock, wallet } = useSomnix();
+  const [timeLeftMs, setTimeLeftMs] = useState<number>(() =>
+    activeLock ? Math.max(0, activeLock.hidePriceUntil - Date.now()) : 0
+  );
   const [copied, setCopied] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     if (!activeLock) {
       router.push('/');
+      return;
+    }
+
+    if (activeLock.hidePriceUntil <= Date.now()) {
+      router.push('/reveal');
       return;
     }
 
@@ -31,12 +37,6 @@ export function LockPanel() {
         router.push('/reveal');
       }
     }, 1000);
-
-    const initialRemaining = Math.max(0, activeLock.hidePriceUntil - Date.now());
-    setTimeLeftMs(initialRemaining);
-    if (initialRemaining <= 0) {
-      router.push('/reveal');
-    }
 
     return () => clearInterval(interval);
   }, [activeLock, router]);
@@ -81,7 +81,7 @@ export function LockPanel() {
               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-[0_0_15px_rgba(34,197,94,0.3)]'
               : 'bg-red-500/20 text-red-400 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
           }`}>
-            Locked {activeLock.side.toUpperCase()} · {activeLock.amount} STT
+            Locked {activeLock.side.toUpperCase()} · {activeLock.amount} {wallet.currencySymbol}
           </span>
         </div>
       </div>
@@ -112,7 +112,7 @@ export function LockPanel() {
         <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-1">
           <span className="text-zinc-500 uppercase text-[10px] block">Position</span>
           <span className={`font-bold text-sm ${isGreen ? 'text-emerald-400' : 'text-red-400'}`}>
-            {activeLock.pair} {activeLock.side.toUpperCase()} ({activeLock.amount} STT)
+            {activeLock.pair} {activeLock.side.toUpperCase()} ({activeLock.amount} {wallet.currencySymbol})
           </span>
           <p className="text-zinc-400 text-[11px]">Settles directly at window end.</p>
         </div>
@@ -120,17 +120,17 @@ export function LockPanel() {
         <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-1">
           <span className="text-zinc-500 uppercase text-[10px] block">Protection</span>
           <span className="font-bold text-white text-sm">
-            Max Loss: {activeLock.amount} STT
+            Max Loss: {activeLock.amount} {wallet.currencySymbol}
           </span>
           <p className="text-zinc-400 text-[11px]">Hard cap guaranteed on-chain.</p>
         </div>
 
         <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-1">
-          <span className="text-zinc-500 uppercase text-[10px] block">Target Payout</span>
+          <span className="text-zinc-500 uppercase text-[10px] block">If {activeLock.side.toUpperCase()} Wins</span>
           <span className="font-bold text-emerald-400 text-sm">
-            +{(activeLock.amount * 1.92).toFixed(1)} STT
+            +{activeLock.payout.toFixed(2)} {wallet.currencySymbol}
           </span>
-          <p className="text-zinc-400 text-[11px]">Ready for one-tap claim at 0:00.</p>
+          <p className="text-zinc-400 text-[11px]">Priced by the live order book at entry (~{(activeLock.price * 100).toFixed(0)}%). Ready for claim once resolved.</p>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createWalletClient, custom, type WalletClient } from 'viem';
 import {
   WindowPair,
   WindowLength,
@@ -12,14 +13,36 @@ import {
 } from './types';
 import {
   getMarketWindow,
+  fetchLiveMarkets,
+  fetchLiveOdds,
   loadActiveLock,
   saveActiveLock,
   createLock,
-  resolveLock,
   getRecentWindows,
   addRecentWindow,
   getCurrentWindowBounds,
+  loadPendingLockIntent,
+  clearPendingLockIntent,
 } from './marketService';
+import { fetchCollateralBalance, fetchCollateralMeta, somniaTestnet, SOMNIA_CONFIG } from './somnia';
+import {
+  bindExchangeSigner,
+  describeExchangeError,
+  findLiveMarket,
+  lockPosition,
+  lockWithIntent,
+  getResolution,
+  claimWinnings,
+  requestFaucet,
+  checkFilledAmount,
+  reconcileOutcome,
+} from './exchange';
+
+interface ClaimResult {
+  success: boolean;
+  txHash?: string;
+  reason?: string;
+}
 
 interface SomnixContextType {
   wallet: WalletState;
@@ -27,7 +50,7 @@ interface SomnixContextType {
   isViewingLanding: boolean;
   goToLanding: () => void;
   enterApp: () => void;
-  
+
   isWalletModalOpen: boolean;
   openWalletModal: () => void;
   closeWalletModal: () => void;
@@ -35,65 +58,130 @@ interface SomnixContextType {
   disconnectWallet: () => void;
   toggleWatchMode: (val?: boolean) => void;
   enterAppInWatchMode: () => void;
-  faucet: () => void;
-  
+  faucet: () => Promise<{ success: boolean; reason?: string }>;
+  isFauceting: boolean;
+
   selectedPair: WindowPair;
   setSelectedPair: (p: WindowPair) => void;
   selectedLength: WindowLength;
   setSelectedLength: (l: WindowLength) => void;
   selectedAmount: number;
   setSelectedAmount: (a: number) => void;
-  
+
   currentMarket: MarketWindow;
   activeLock: UserLock | null;
   recents: RecentWindow[];
-  
+
   remainingSeconds: number;
   isExpensiveSide: { isExpensive: boolean; side?: MarketSide; pct?: number };
   lockValidation: { canLock: boolean; reason?: string };
-  
+
   executeLock: (side: MarketSide) => Promise<UserLock | null>;
-  claimPayout: (lock: UserLock) => Promise<{ success: boolean; txHash?: string }>;
+  claimPayout: (lock: UserLock) => Promise<ClaimResult>;
   prepareSameAgain: () => void;
   clearLock: () => void;
 }
 
 const SomnixContext = createContext<SomnixContextType | null>(null);
 
+type Eip1193Provider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  isMetaMask?: boolean;
+  isCoinbaseWallet?: boolean;
+  isRainbow?: boolean;
+  isTrust?: boolean;
+  isPhantom?: boolean;
+};
+
 const DEFAULT_WALLET: WalletState = {
   isConnected: false,
   isWatchMode: false,
   address: null,
-  balance: 50.0,
+  balance: 0,
+  currencySymbol: '',
   dailyBudgetTotal: 20.0,
   dailyBudgetSpent: 5.0,
 };
 
-const SOMNIA_HEX_CHAIN_ID = '0xc488'; // 50312
+function getInitialWalletState(): WalletState {
+  if (typeof window === 'undefined') return DEFAULT_WALLET;
+  try {
+    const savedConnected = localStorage.getItem('somnix_wallet_connected_v1');
+    const savedAddress = localStorage.getItem('somnix_wallet_address_v1');
+    const savedWatchMode = localStorage.getItem('somnix_watch_mode_v1');
+    const savedBudget = localStorage.getItem('somnix_daily_budget_v1');
 
-async function requestSomniaNetwork(provider: any) {
+    let total = 20.0;
+    let spent = 5.0;
+    if (savedBudget) {
+      const parsed = JSON.parse(savedBudget);
+      total = parsed.total ?? 20.0;
+      spent = parsed.spent ?? 5.0;
+    }
+
+    if (savedConnected === 'true' && savedAddress) {
+      return { ...DEFAULT_WALLET, isConnected: true, address: savedAddress, dailyBudgetTotal: total, dailyBudgetSpent: spent };
+    } else if (savedWatchMode === 'true') {
+      return { ...DEFAULT_WALLET, isWatchMode: true, dailyBudgetTotal: total, dailyBudgetSpent: spent };
+    }
+  } catch {
+    // fallback
+  }
+  return DEFAULT_WALLET;
+}
+
+function pickProvider(walletType?: string): Eip1193Provider | null {
+  if (typeof window === 'undefined') return null;
+  const win = window as unknown as Record<string, unknown>;
+  const eth = win.ethereum as (Eip1193Provider & { providers?: Eip1193Provider[] }) | undefined;
+
+  if (walletType === 'coinbase' && win.coinbaseWalletExtension) {
+    return win.coinbaseWalletExtension as Eip1193Provider;
+  }
+  if (walletType === 'okx' && win.okxwallet) {
+    return win.okxwallet as Eip1193Provider;
+  }
+  if (walletType === 'phantom' && (win.phantom as Record<string, unknown>)?.ethereum) {
+    return (win.phantom as Record<string, unknown>).ethereum as Eip1193Provider;
+  }
+  if (walletType === 'trust' && win.trustwallet) {
+    return win.trustwallet as Eip1193Provider;
+  }
+  if (eth) {
+    if (Array.isArray(eth.providers)) {
+      if (walletType === 'metamask') return eth.providers.find((p) => p.isMetaMask) || eth;
+      if (walletType === 'coinbase') return eth.providers.find((p) => p.isCoinbaseWallet) || eth;
+      return eth;
+    }
+    return eth;
+  }
+  return null;
+}
+
+async function requestSomniaNetwork(provider: Eip1193Provider | null | undefined) {
   if (!provider?.request) return;
   try {
     await provider.request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: SOMNIA_HEX_CHAIN_ID }],
+      params: [{ chainId: SOMNIA_CONFIG.chainHexId }],
     });
-  } catch (switchError: any) {
-    if (switchError?.code === 4902 || switchError?.data?.originalError?.code === 4902) {
+  } catch (switchError: unknown) {
+    const errObj = switchError as { code?: number; data?: { originalError?: { code?: number } } };
+    if (errObj?.code === 4902 || errObj?.data?.originalError?.code === 4902) {
       try {
         await provider.request({
           method: 'wallet_addEthereumChain',
           params: [
             {
-              chainId: SOMNIA_HEX_CHAIN_ID,
-              chainName: 'Somnia Shannon Testnet',
+              chainId: SOMNIA_CONFIG.chainHexId,
+              chainName: SOMNIA_CONFIG.chainName,
               nativeCurrency: {
                 name: 'Somnia Testnet Token',
-                symbol: 'STT',
+                symbol: SOMNIA_CONFIG.symbol,
                 decimals: 18,
               },
-              rpcUrls: ['https://dream-rpc.somnia.network'],
-              blockExplorerUrls: ['https://shannon-explorer.somnia.network'],
+              rpcUrls: [SOMNIA_CONFIG.rpcUrl],
+              blockExplorerUrls: [SOMNIA_CONFIG.explorerUrl],
             },
           ],
         });
@@ -104,58 +192,100 @@ async function requestSomniaNetwork(provider: any) {
   }
 }
 
+function buildWalletClient(provider: Eip1193Provider, address: string): WalletClient {
+  return createWalletClient({
+    chain: somniaTestnet,
+    transport: custom(provider as unknown as { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> }),
+    account: address as `0x${string}`,
+  });
+}
+
 export function SomnixProvider({ children }: { children: React.ReactNode }) {
-  const [wallet, setWallet] = useState<WalletState>(DEFAULT_WALLET);
-  const [isMounted, setIsMounted] = useState(false);
+  const [wallet, setWallet] = useState<WalletState>(() => getInitialWalletState());
   const [isViewingLanding, setIsViewingLanding] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isFauceting, setIsFauceting] = useState(false);
   const [selectedPair, setSelectedPair] = useState<WindowPair>('BTC');
   const [selectedLength, setSelectedLength] = useState<WindowLength>('15m');
   const [selectedAmount, setSelectedAmount] = useState<number>(10);
-  const [activeLock, setActiveLock] = useState<UserLock | null>(null);
-  const [recents, setRecents] = useState<RecentWindow[]>([]);
-  const [remainingSeconds, setRemainingSeconds] = useState<number>(900);
-  const [tick, setTick] = useState<number>(0);
+  const [activeLock, setActiveLock] = useState<UserLock | null>(() => loadActiveLock());
+  const [recents, setRecents] = useState<RecentWindow[]>(() => getRecentWindows());
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(() => {
+    const { remainingMs } = getCurrentWindowBounds('15m');
+    return Math.floor(remainingMs / 1000);
+  });
+  const [marketOverride, setMarketOverride] = useState<Partial<MarketWindow> | null>(null);
 
-  // Initialize from storage on client mount
-  useEffect(() => {
-    setIsMounted(true);
-    const savedLock = loadActiveLock();
-    setActiveLock(savedLock);
-
-    const savedRecents = getRecentWindows();
-    setRecents(savedRecents);
-
-    const savedConnected = localStorage.getItem('somnix_wallet_connected_v1');
-    const savedAddress = localStorage.getItem('somnix_wallet_address_v1');
-    const savedWatchMode = localStorage.getItem('somnix_watch_mode_v1');
-
-    if (savedConnected === 'true') {
-      setWallet({
-        isConnected: true,
-        isWatchMode: false,
-        address: savedAddress || '0x8A92cE1f31F41029c7a52D1b7B5C35a64669f9Db',
-        balance: 50.0,
-        dailyBudgetTotal: 20.0,
-        dailyBudgetSpent: 5.0,
-      });
-    } else if (savedWatchMode === 'true') {
-      setWallet((w) => ({ ...w, isConnected: false, isWatchMode: true }));
-    }
-
-    const savedBudget = localStorage.getItem('somnix_daily_budget_v1');
-    if (savedBudget) {
-      try {
-        const parsed = JSON.parse(savedBudget);
-        setWallet((w) => ({
-          ...w,
-          dailyBudgetTotal: parsed.total ?? 20,
-          dailyBudgetSpent: parsed.spent ?? 5,
-        }));
-      } catch {
-        // ignore
+  const refreshBalance = useCallback((address: string) => {
+    fetchCollateralBalance(address).then((realBalance) => {
+      if (realBalance !== null) {
+        setWallet((w) => ({ ...w, balance: realBalance }));
       }
-    }
+    });
+  }, []);
+
+  // Recovers a lock whose result was never confirmed to the app (tab closed/crashed
+  // between the wallet confirming and executeLock recording it — see PendingLockIntent).
+  // Call this once a signer is actually bound; a real chain read is the only way to
+  // know whether the order landed, so an inconclusive check leaves the intent in
+  // place to retry next time rather than guessing either way.
+  const reconcilePendingLock = useCallback(() => {
+    const pending = loadPendingLockIntent();
+    if (!pending) return;
+    checkFilledAmount(pending.marketId, pending.side)
+      .then((filled) => {
+        if (filled > 0) {
+          const base = getMarketWindow(pending.pair, pending.length);
+          const recovered = createLock(
+            { ...base, id: pending.marketId },
+            pending.side,
+            pending.amount,
+            { filled, price: 0, txHash: '' },
+            pending.id
+          );
+          setActiveLock(recovered);
+        }
+        clearPendingLockIntent();
+      })
+      .catch((err) => {
+        console.warn('[Somnix] Could not reconcile a pending lock yet — will retry:', err);
+      });
+  }, []);
+
+  // Resolve the collateral token's real symbol once — needed regardless of connection state.
+  useEffect(() => {
+    fetchCollateralMeta()
+      .then((meta) => setWallet((w) => ({ ...w, currencySymbol: meta.symbol })))
+      .catch((err) => console.warn('[Somnix] Failed to resolve collateral token metadata:', err));
+  }, []);
+
+  // Rehydrate the signer after a page reload: a persisted "connected" flag has no
+  // live walletClient bound to the exchange yet, so silently re-derive one (no
+  // popup — eth_accounts only) or fall back to disconnected if it's gone.
+  useEffect(() => {
+    if (!wallet.isConnected || !wallet.address) return;
+    const savedAddress = wallet.address;
+    const provider = pickProvider();
+    const dropSession = () => setWallet((w) => ({ ...w, isConnected: false, address: null }));
+
+    Promise.resolve()
+      .then(() => {
+        if (!provider) throw new Error('No provider');
+        return provider.request({ method: 'eth_accounts' });
+      })
+      .then((accounts) => {
+        const found = (accounts as string[])?.[0];
+        if (found && found.toLowerCase() === savedAddress.toLowerCase()) {
+          bindExchangeSigner(buildWalletClient(provider!, found));
+          refreshBalance(found);
+          reconcilePendingLock();
+        } else {
+          dropSession();
+        }
+      })
+      .catch(dropSession);
+    // Only on mount — connectWallet()/disconnectWallet() manage the signer for the rest of the session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update timer & clock every second
@@ -163,16 +293,48 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
     const timer = setInterval(() => {
       const { remainingMs } = getCurrentWindowBounds(selectedLength);
       setRemainingSeconds(Math.floor(remainingMs / 1000));
-      setTick((t) => t + 1);
     }, 1000);
 
     return () => clearInterval(timer);
   }, [selectedLength]);
 
+  // Asynchronously poll backend / indexer for market & odds updates
+  useEffect(() => {
+    let isCancelled = false;
+    async function loadLiveFeed() {
+      const live = await fetchLiveMarkets(selectedPair, selectedLength);
+      if (!isCancelled && live) {
+        setMarketOverride({ id: live.id, isLive: live.isLive });
+        if (live.isLive) {
+          const odds = await fetchLiveOdds(live.id);
+          if (!isCancelled && odds) {
+            setMarketOverride((prev) => ({ ...prev, greenOdds: odds.greenOdds, redOdds: odds.redOdds }));
+          }
+        }
+      }
+    }
+    loadLiveFeed();
+    const interval = setInterval(loadLiveFeed, 10000);
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
+  }, [selectedPair, selectedLength]);
+
   // Current market window
   const currentMarket = useMemo(() => {
-    return getMarketWindow(selectedPair, selectedLength);
-  }, [selectedPair, selectedLength, tick]);
+    const base = getMarketWindow(selectedPair, selectedLength);
+    if (marketOverride) {
+      return {
+        ...base,
+        id: marketOverride.id ?? base.id,
+        isLive: marketOverride.isLive ?? base.isLive,
+        greenOdds: marketOverride.greenOdds ?? base.greenOdds,
+        redOdds: marketOverride.redOdds ?? base.redOdds,
+      };
+    }
+    return base;
+  }, [selectedPair, selectedLength, marketOverride]);
 
   // Check if one side is >= 70%
   const isExpensiveSide = useMemo(() => {
@@ -194,23 +356,23 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
       return { canLock: false, reason: 'In Watch Mode (Connect wallet to lock)' };
     }
     if (!currentMarket.isLive) {
-      return { canLock: false, reason: 'This window is not live yet' };
+      return { canLock: false, reason: 'No live DreamDEX market for this window right now — try another pair or length' };
     }
-    
+
     // Dynamic cutoff based on window length
     const minCutoffSeconds = selectedLength === '1m' ? 10 : selectedLength === '3m' ? 20 : selectedLength === '5m' ? 30 : 60;
     if (remainingSeconds < minCutoffSeconds) {
       return { canLock: false, reason: `Less than ${minCutoffSeconds}s left in this window. Wait for next.` };
     }
     if (selectedAmount < currentMarket.minAmount) {
-      return { canLock: false, reason: `Minimum amount is ${currentMarket.minAmount} STT` };
+      return { canLock: false, reason: `Minimum amount is ${currentMarket.minAmount} ${wallet.currencySymbol}` };
     }
     if (wallet.balance < selectedAmount) {
-      return { canLock: false, reason: 'Not enough STT balance' };
+      return { canLock: false, reason: `Not enough ${wallet.currencySymbol || 'collateral'} balance` };
     }
     const budgetRemaining = wallet.dailyBudgetTotal - wallet.dailyBudgetSpent;
     if (selectedAmount > budgetRemaining) {
-      return { canLock: false, reason: `Exceeds today's budget (${budgetRemaining} STT left)` };
+      return { canLock: false, reason: `Exceeds today's budget (${budgetRemaining} ${wallet.currencySymbol} left)` };
     }
     if (activeLock && activeLock.marketId === currentMarket.id) {
       return { canLock: false, reason: 'You already locked a guess for this window' };
@@ -236,57 +398,41 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const connectWallet = useCallback(async (walletType?: string): Promise<boolean> => {
-    let chosenAddress = '0x8A92cE1f31F41029c7a52D1b7B5C35a64669f9Db';
-    let provider: any = null;
-
-    if (typeof window !== 'undefined') {
-      const win = window as any;
-      if (walletType === 'coinbase' && win.coinbaseWalletExtension) {
-        provider = win.coinbaseWalletExtension;
-      } else if (walletType === 'okx' && win.okxwallet) {
-        provider = win.okxwallet;
-      } else if (walletType === 'phantom' && win.phantom?.ethereum) {
-        provider = win.phantom.ethereum;
-      } else if (walletType === 'trust' && win.trustwallet) {
-        provider = win.trustwallet;
-      } else if (win.ethereum) {
-        if (Array.isArray(win.ethereum.providers)) {
-          if (walletType === 'metamask') {
-            provider = win.ethereum.providers.find((p: any) => p.isMetaMask) || win.ethereum;
-          } else if (walletType === 'coinbase') {
-            provider = win.ethereum.providers.find((p: any) => p.isCoinbaseWallet) || win.ethereum;
-          } else {
-            provider = win.ethereum;
-          }
-        } else {
-          provider = win.ethereum;
-        }
-      }
+    const provider = pickProvider(walletType);
+    if (!provider) {
+      throw new Error('No EVM wallet extension found. Install one and try again.');
     }
 
-    if (provider) {
-      try {
-        const accounts = await provider.request({ method: 'eth_requestAccounts' });
-        if (accounts && accounts[0]) {
-          chosenAddress = accounts[0];
-        }
-        await requestSomniaNetwork(provider);
-      } catch (e: any) {
-        console.warn('Wallet connection fallback / warning:', e);
-        if (e?.code === 4001) {
-          throw new Error('Connection request was rejected in your wallet.');
-        }
+    let chosenAddress: string | undefined;
+    try {
+      const accounts = (await provider.request({ method: 'eth_requestAccounts' })) as string[];
+      chosenAddress = accounts?.[0];
+      await requestSomniaNetwork(provider);
+    } catch (e: unknown) {
+      const errObj = e as { code?: number };
+      if (errObj?.code === 4001) {
+        throw new Error('Connection request was rejected in your wallet.');
       }
+      throw e instanceof Error ? e : new Error('Failed to connect wallet.');
     }
 
-    setWallet({
+    if (!chosenAddress) {
+      throw new Error('No account was returned by your wallet.');
+    }
+
+    bindExchangeSigner(buildWalletClient(provider, chosenAddress));
+    const realBalance = await fetchCollateralBalance(chosenAddress);
+    reconcilePendingLock();
+
+    setWallet((w) => ({
+      ...w,
       isConnected: true,
       isWatchMode: false,
-      address: chosenAddress,
-      balance: 50.0,
+      address: chosenAddress!,
+      balance: realBalance ?? 0,
       dailyBudgetTotal: 20.0,
       dailyBudgetSpent: 5.0,
-    });
+    }));
     setIsViewingLanding(false);
 
     if (typeof window !== 'undefined') {
@@ -296,9 +442,10 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
     }
 
     return true;
-  }, []);
+  }, [reconcilePendingLock]);
 
   const disconnectWallet = useCallback(() => {
+    bindExchangeSigner(undefined);
     setWallet((w) => ({
       ...w,
       isConnected: false,
@@ -313,14 +460,8 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const enterAppInWatchMode = useCallback(() => {
-    setWallet({
-      isConnected: false,
-      isWatchMode: true,
-      address: null,
-      balance: 0,
-      dailyBudgetTotal: 20,
-      dailyBudgetSpent: 0,
-    });
+    bindExchangeSigner(undefined);
+    setWallet((w) => ({ ...w, isConnected: false, isWatchMode: true, address: null, balance: 0 }));
     setIsViewingLanding(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem('somnix_watch_mode_v1', 'true');
@@ -328,46 +469,94 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Only handles ENTERING watch mode. Leaving it is a real connect — see WalletModal / TopBar,
+  // which open the wallet modal instead of calling this with `false`.
   const toggleWatchMode = useCallback((val?: boolean) => {
-    setWallet((prev) => {
-      const nextWatch = val !== undefined ? val : !prev.isWatchMode;
-      if (nextWatch) {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('somnix_watch_mode_v1', 'true');
-          localStorage.removeItem('somnix_wallet_connected_v1');
-        }
-        return { ...prev, isWatchMode: true, isConnected: false, address: null };
-      } else {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('somnix_watch_mode_v1');
-          localStorage.setItem('somnix_wallet_connected_v1', 'true');
-        }
-        return { ...prev, isWatchMode: false, isConnected: true, address: '0x8A92cE1f31F41029c7a52D1b7B5C35a64669f9Db' };
-      }
-    });
+    const nextWatch = val !== undefined ? val : true;
+    if (!nextWatch) return;
+    bindExchangeSigner(undefined);
+    setWallet((prev) => ({ ...prev, isWatchMode: true, isConnected: false, address: null }));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('somnix_watch_mode_v1', 'true');
+      localStorage.removeItem('somnix_wallet_connected_v1');
+    }
   }, []);
 
-  const faucet = useCallback(() => {
-    setWallet((prev) => ({
-      ...prev,
-      balance: prev.balance + 25.0,
-      dailyBudgetTotal: prev.dailyBudgetTotal + 20.0,
-    }));
-  }, []);
+  const faucet = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
+    if (!wallet.isConnected || !wallet.address) {
+      return { success: false, reason: 'Connect your wallet first.' };
+    }
+    setIsFauceting(true);
+    try {
+      await requestFaucet();
+      refreshBalance(wallet.address);
+      return { success: true };
+    } catch (err: unknown) {
+      console.error('[Somnix Faucet Error]', err);
+      return { success: false, reason: describeExchangeError(err) };
+    } finally {
+      setIsFauceting(false);
+    }
+  }, [wallet.isConnected, wallet.address, refreshBalance]);
 
   const executeLock = useCallback(
     async (side: MarketSide): Promise<UserLock | null> => {
       if (!lockValidation.canLock) return null;
 
-      const newLock = createLock(currentMarket, side, selectedAmount);
+      const market = await findLiveMarket(selectedPair, selectedLength);
+      if (!market) {
+        throw new Error('No live DreamDEX market for this window right now — try another pair or length.');
+      }
+
+      // Persisted BEFORE the wallet prompt: if the tab closes between the wallet
+      // confirming and the order resolving below, reconcilePendingLock recovers
+      // the real fill from chain instead of the app silently losing track of it.
+      const idempotencyKey = `lock-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      savePendingLockIntent({
+        id: idempotencyKey,
+        marketId: market.id,
+        pair: selectedPair,
+        length: selectedLength,
+        side,
+        amount: selectedAmount,
+        createdAt: Date.now(),
+      });
+
+      let order;
+      try {
+        order = await lockPosition(market, side, selectedAmount);
+      } catch (err: unknown) {
+        // Only discard the intent when we're SURE nothing was sent — an ambiguous
+        // failure (timeout, dropped connection) stays pending for reconciliation.
+        const ambiguous = isAmbiguousTxError(err);
+        if (!ambiguous) clearPendingLockIntent();
+        console.error('[Somnia Lock Error]', {
+          timestamp: new Date().toISOString(),
+          idempotencyKey,
+          marketId: market.id,
+          side,
+          amount: selectedAmount,
+          ambiguous,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        throw err;
+      }
+      clearPendingLockIntent();
+
+      // Use the freshly-fetched market's own id + real on-chain expiry — currentMarket's
+      // id/endTime come from the app's synthetic clock-aligned window and can drift.
+      const expiry = Number((market.info as { expiry?: string }).expiry);
+      const newLock = createLock(
+        { ...currentMarket, id: market.id, endTime: Number.isFinite(expiry) && expiry > 0 ? expiry * 1000 : currentMarket.endTime },
+        side,
+        selectedAmount,
+        { filled: order.filled, price: order.price, txHash: order.hash },
+        idempotencyKey
+      );
       setActiveLock(newLock);
 
       setWallet((w) => {
-        const updated = {
-          ...w,
-          balance: Math.max(0, w.balance - selectedAmount),
-          dailyBudgetSpent: w.dailyBudgetSpent + selectedAmount,
-        };
+        const updated = { ...w, dailyBudgetSpent: w.dailyBudgetSpent + selectedAmount };
         if (typeof window !== 'undefined') {
           localStorage.setItem(
             'somnix_daily_budget_v1',
@@ -376,53 +565,63 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
         }
         return updated;
       });
+      if (wallet.address) refreshBalance(wallet.address);
 
       return newLock;
     },
-    [lockValidation, currentMarket, selectedAmount]
+    [lockValidation, currentMarket, selectedPair, selectedLength, selectedAmount, wallet.address, refreshBalance]
   );
 
   const claimPayout = useCallback(
-    async (lock: UserLock): Promise<{ success: boolean; txHash?: string }> => {
-      await new Promise((resolve) => setTimeout(resolve, 1400));
-      const txHash = `0x${Math.random().toString(16).slice(2, 10)}...${Math.random().toString(16).slice(2, 6)}`;
+    async (lock: UserLock): Promise<ClaimResult> => {
+      try {
+        const resolution = await getResolution(lock.marketId);
+        if (!resolution.resolved) {
+          return { success: false, reason: 'This window has not resolved on-chain yet — try again shortly.' };
+        }
+        // A void market redeems every outcome token at par — proceed regardless of side.
+        // Otherwise only the winning side's tokens are worth anything.
+        if (!resolution.voided && resolution.winningSide !== lock.side) {
+          return { success: false, reason: 'This window resolved against your call — nothing to claim.' };
+        }
 
-      const payoutAmount = lock.payout || lock.amount * 1.92;
-      setWallet((w) => ({
-        ...w,
-        balance: Number((w.balance + payoutAmount).toFixed(2)),
-      }));
+        const redeemed = await claimWinnings(lock.marketId, lock.payout);
 
-      const updatedLock: UserLock = {
-        ...lock,
-        status: 'claimed',
-        txHash,
-      };
-      setActiveLock(updatedLock);
-      saveActiveLock(updatedLock);
+        const updatedLock: UserLock = { ...lock, status: 'claimed', txHash: redeemed.hash };
+        setActiveLock(updatedLock);
+        saveActiveLock(updatedLock);
 
-      const resolved = resolveLock(lock);
-      addRecentWindow({
-        id: lock.marketId,
-        pair: lock.pair,
-        length: lock.length,
-        startTime: lock.lockedAt - 900000,
-        endTime: lock.hidePriceUntil,
-        startPrice: lock.startPrice,
-        endPrice: resolved.endPrice,
-        resultSide: resolved.resultSide,
-        userPlayed: true,
-        userSide: lock.side,
-        userAmount: lock.amount,
-        userResult: resolved.userWon ? 'right' : 'wrong',
-        claimed: true,
-        txHash,
-      });
-      setRecents(getRecentWindows());
+        addRecentWindow({
+          id: lock.marketId,
+          pair: lock.pair,
+          length: lock.length,
+          startTime: lock.lockedAt,
+          endTime: lock.hidePriceUntil,
+          startPrice: lock.startPrice,
+          resultSide: resolution.voided ? lock.side : resolution.winningSide!,
+          userPlayed: true,
+          userSide: lock.side,
+          userAmount: lock.amount,
+          userPayout: lock.payout,
+          userResult: resolution.voided ? 'void' : 'right',
+          claimed: true,
+          txHash: redeemed.hash,
+        });
+        setRecents(getRecentWindows());
+        if (wallet.address) refreshBalance(wallet.address);
 
-      return { success: true, txHash };
+        return { success: true, txHash: redeemed.hash };
+      } catch (err: unknown) {
+        console.error('[Somnia Claim Error]', {
+          timestamp: new Date().toISOString(),
+          lockId: lock.id,
+          marketId: lock.marketId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return { success: false, reason: describeExchangeError(err) };
+      }
     },
-    []
+    [wallet.address, refreshBalance]
   );
 
   const prepareSameAgain = useCallback(() => {
@@ -456,6 +655,7 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
         toggleWatchMode,
         enterAppInWatchMode,
         faucet,
+        isFauceting,
         selectedPair,
         setSelectedPair,
         selectedLength,

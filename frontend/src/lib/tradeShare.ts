@@ -44,7 +44,7 @@ export function generateTradeShareUrl(trade: SharedTradeData): string {
     const json = JSON.stringify(payload);
     const encoded = btoa(encodeURIComponent(json));
     return `${window.location.origin}/trade?data=${encoded}`;
-  } catch (e) {
+  } catch {
     // Fallback to query params
     const params = new URLSearchParams({
       id: trade.id,
@@ -83,7 +83,7 @@ export function decodeTradeShareUrl(searchParams: URLSearchParams): SharedTradeD
         txHash: p.tx,
         payout: p.po ? Number(p.po) : undefined,
       };
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Failed to decode trade data:', e);
     }
   }
@@ -105,7 +105,7 @@ export function decodeTradeShareUrl(searchParams: URLSearchParams): SharedTradeD
     startPrice,
     endPrice,
     lockedAt: Number(searchParams.get('lockedAt')) || Date.now(),
-    status: endPrice ? (searchParams.get('status') as any || 'resolved') : 'locked',
+    status: endPrice ? ((searchParams.get('status') as SharedTradeData['status']) || 'resolved') : 'locked',
     txHash: searchParams.get('tx') || undefined,
   };
 }
@@ -113,7 +113,7 @@ export function decodeTradeShareUrl(searchParams: URLSearchParams): SharedTradeD
 /**
  * Converts a UserLock into SharedTradeData
  */
-export function userLockToSharedTrade(lock: UserLock, resolvedEndPrice?: number, won?: boolean, resultSide?: MarketSide): SharedTradeData {
+export function userLockToSharedTrade(lock: UserLock, won?: boolean, resultSide?: MarketSide): SharedTradeData {
   return {
     id: lock.id,
     pair: lock.pair,
@@ -121,14 +121,13 @@ export function userLockToSharedTrade(lock: UserLock, resolvedEndPrice?: number,
     side: lock.side,
     amount: lock.amount,
     startPrice: lock.startPrice,
-    endPrice: lock.endPrice || resolvedEndPrice,
     lockedAt: lock.lockedAt,
     hidePriceUntil: lock.hidePriceUntil,
     status: lock.status,
     resultSide,
     userWon: won,
     txHash: lock.txHash,
-    payout: lock.payout || Number((lock.amount * 1.92).toFixed(2)),
+    payout: lock.payout,
   };
 }
 
@@ -143,13 +142,12 @@ export function recentWindowToSharedTrade(recent: RecentWindow): SharedTradeData
     side: recent.userSide || recent.resultSide,
     amount: recent.userAmount || 10,
     startPrice: recent.startPrice,
-    endPrice: recent.endPrice,
     lockedAt: recent.startTime,
     hidePriceUntil: recent.endTime,
     status: recent.claimed ? 'claimed' : (recent.userResult === 'right' ? 'won' : 'lost'),
     resultSide: recent.resultSide,
     userWon: recent.userResult === 'right',
     txHash: recent.txHash,
-    payout: recent.userAmount ? Number((recent.userAmount * 1.92).toFixed(2)) : undefined,
+    payout: recent.userPayout,
   };
 }

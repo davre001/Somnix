@@ -3,10 +3,7 @@ import dotenv from "dotenv";
 import { closeSqliteStore } from "./repositories/sqliteStore.js";
 import { app } from "./app.js";
 
-// Resolved from cwd, not __dirname: dev runs src/index.ts directly (tsx),
-// prod runs the flattened dist/index.js (tsc, rootDir src) — those sit at
-// different depths, but both are always launched from backend/ (npm run
-// dev|start, see package.json), where .env.local lives.
+// Resolved from cwd, not __dirname
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 const port = Number(process.env.PORT ?? 4000);

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import Link from 'next/link';
 import { useSomnix } from '@/lib/useSomnix';
 import { RecentWindow } from '@/lib/types';
 import { ShareCard } from './ShareCard';
@@ -15,11 +14,10 @@ import {
   X,
   Filter,
   Copy,
-  ExternalLink,
 } from 'lucide-react';
 
 export function RecentsList() {
-  const { recents } = useSomnix();
+  const { recents, wallet } = useSomnix();
   const [filterPair, setFilterPair] = useState<string>('ALL');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedForShare, setSelectedForShare] = useState<RecentWindow | null>(null);
@@ -78,7 +76,7 @@ export function RecentsList() {
 
         <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-0.5 sm:space-y-1">
           <span className="text-[9px] sm:text-[10px] font-mono text-zinc-500 uppercase block">Volume Locked</span>
-          <div className="text-xl sm:text-2xl font-black font-mono text-white">{stats.totalVolume} STT</div>
+          <div className="text-xl sm:text-2xl font-black font-mono text-white">{stats.totalVolume} {wallet.currencySymbol}</div>
           <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400">Discipline capped</span>
         </div>
       </div>
@@ -119,7 +117,13 @@ export function RecentsList() {
 
       {/* Recents Cards Grid */}
       <div className="space-y-2.5 sm:space-y-3">
+        {filteredRecents.length === 0 && (
+          <div className="p-8 rounded-2xl bg-[#0c0c10] border border-zinc-800/80 text-center text-xs font-mono text-zinc-500">
+            No windows yet. Lock a call and it&apos;ll show up here once claimed.
+          </div>
+        )}
         {filteredRecents.map((item) => {
+          const isVoided = item.userResult === 'void';
           const isGreenResult = item.resultSide === 'green';
           const played = item.userPlayed;
           const wasRight = item.userResult === 'right';
@@ -151,6 +155,7 @@ export function RecentsList() {
                     <span className="font-bold text-sm text-white font-mono">
                       {item.pair} · {item.length}
                     </span>
+<<<<<<< Updated upstream
                     <span
                       className={`text-[9px] sm:text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase ${
                         isGreenResult
@@ -167,6 +172,11 @@ export function RecentsList() {
                     <span className={`font-semibold ${isGreenResult ? 'text-emerald-400' : 'text-red-400'}`}>
                       ${item.endPrice.toLocaleString()}
                     </span>
+                    {isVoided ? (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase bg-zinc-800 text-zinc-300 border-zinc-700">
+                        Voided
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -178,15 +188,15 @@ export function RecentsList() {
                       <div className="flex items-center sm:justify-end gap-1.5">
                         <span
                           className={`text-xs font-mono font-bold flex items-center gap-1 ${
-                            wasRight ? 'text-emerald-400' : 'text-red-400'
+                            isVoided ? 'text-zinc-300' : wasRight ? 'text-emerald-400' : 'text-red-400'
                           }`}
                         >
-                          {wasRight ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <X className="w-3.5 h-3.5 text-red-400" />}
-                          {wasRight ? 'Right Call' : 'Wrong Call'}
+                          {isVoided ? null : wasRight ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <X className="w-3.5 h-3.5 text-red-400" />}
+                          {isVoided ? 'Refunded' : wasRight ? 'Right Call' : 'Wrong Call'}
                         </span>
                       </div>
                       <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400 block">
-                        Locked <strong className={isUserGreen ? 'text-emerald-400' : 'text-red-400'}>{item.userSide?.toUpperCase()}</strong> ({item.userAmount} STT)
+                        Locked <strong className={isUserGreen ? 'text-emerald-400' : 'text-red-400'}>{item.userSide?.toUpperCase()}</strong> ({item.userAmount} {wallet.currencySymbol})
                       </span>
                     </>
                   ) : (

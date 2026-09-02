@@ -1,39 +1,73 @@
-import { defineChain } from 'viem';
+import { createPublicClient, http, formatUnits, type Address } from 'viem';
+import { somniaShannon } from '@somnia-chain/markets-sdk/chains';
+import { SOMNIA_TESTNET_ADDRESSES } from '@somnia-chain/markets-sdk';
 
-export const somniaTestnet = defineChain({
-  id: 50312,
-  name: 'Somnia Shannon Testnet',
-  nativeCurrency: {
-    name: 'Somnia Testnet Token',
-    symbol: 'STT',
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: {
-      http: ['https://dream-rpc.somnia.network'],
-    },
-    public: {
-      http: ['https://dream-rpc.somnia.network'],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: 'Somnia Explorer',
-      url: 'https://shannon-explorer.somnia.network',
-    },
-  },
-  testnet: true,
-});
+const ERC20_ABI = [
+  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
+  { type: 'function', name: 'symbol', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
+] as const;
+
+export interface Erc20Meta {
+  symbol: string;
+  decimals: number;
+}
+
+export const somniaTestnet = somniaShannon;
 
 export const SOMNIA_CONFIG = {
-  chainId: 50312,
-  chainName: 'Somnia Testnet',
-  rpcUrl: 'https://dream-rpc.somnia.network',
-  symbol: 'STT',
-  explorerUrl: 'https://shannon-explorer.somnia.network',
-  dreamDexRouter: '0x16b0F9f24E6b9df2f6B58F2e434E0a382Da42e1e',
-  mockEventContract: '0x87aC81C06d15dBeFF89c37264aD14532B84C82eD',
+  chainId: somniaShannon.id,
+  chainHexId: `0x${somniaShannon.id.toString(16)}`,
+  chainName: somniaShannon.name,
+  rpcUrl: somniaShannon.rpcUrls.default.http[0],
+  symbol: somniaShannon.nativeCurrency.symbol,
+  explorerUrl: somniaShannon.blockExplorers.default.url,
 };
+
+// Singleton public client for RPC queries (read-only)
+export const somniaPublicClient = createPublicClient({
+  chain: somniaShannon,
+  transport: http(SOMNIA_CONFIG.rpcUrl),
+});
+
+const COLLATERAL_ADDRESS = SOMNIA_TESTNET_ADDRESSES.collateral as Address;
+
+let collateralMetaPromise: Promise<Erc20Meta> | null = null;
+
+/** The DreamDEX binary markets' collateral ERC-20 (symbol/decimals), fetched once. */
+export function fetchCollateralMeta(): Promise<Erc20Meta> {
+  if (!collateralMetaPromise) {
+    collateralMetaPromise = Promise.all([
+      somniaPublicClient.readContract({ address: COLLATERAL_ADDRESS, abi: ERC20_ABI, functionName: 'symbol' }),
+      somniaPublicClient.readContract({ address: COLLATERAL_ADDRESS, abi: ERC20_ABI, functionName: 'decimals' }),
+    ])
+      .then(([symbol, decimals]) => ({ symbol, decimals }))
+      .catch((err: unknown) => {
+        collateralMetaPromise = null;
+        throw err;
+      });
+  }
+  return collateralMetaPromise;
+}
+
+/** Reads the real on-chain collateral balance for an address, in human units. */
+export async function fetchCollateralBalance(address: string): Promise<number | null> {
+  try {
+    const [raw, meta] = await Promise.all([
+      somniaPublicClient.readContract({
+        address: COLLATERAL_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [address as Address],
+      }),
+      fetchCollateralMeta(),
+    ]);
+    return Number(formatUnits(raw, meta.decimals));
+  } catch (err) {
+    console.warn('[Somnia] Failed to read collateral balance:', err);
+    return null;
+  }
+}
 
 export function shortenAddress(address?: string | null): string {
   if (!address) return '';
@@ -41,6 +75,6 @@ export function shortenAddress(address?: string | null): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export function formatSTT(amount: number): string {
-  return `${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} STT`;
+export function formatCollateral(amount: number, symbol: string): string {
+  return `${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${symbol}`;
 }

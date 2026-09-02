@@ -4,19 +4,22 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSomnix } from '@/lib/useSomnix';
 import { MarketSide } from '@/lib/types';
+import { describeExchangeError } from '@/lib/exchange';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
-import { ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Loader2, AlertCircle } from 'lucide-react';
 
 export function SideButtons() {
   const router = useRouter();
   const { lockValidation, executeLock, wallet } = useSomnix();
   const [submittingSide, setSubmittingSide] = useState<MarketSide | null>(null);
+  const [lockError, setLockError] = useState<string | null>(null);
 
   const handleLock = async (side: MarketSide) => {
     if (!lockValidation.canLock || submittingSide) return;
 
     try {
       setSubmittingSide(side);
+      setLockError(null);
       const lock = await executeLock(side);
       if (lock) {
         setTimeout(() => {
@@ -25,6 +28,7 @@ export function SideButtons() {
       }
     } catch (err) {
       console.error('Failed to lock position:', err);
+      setLockError(describeExchangeError(err));
     } finally {
       setSubmittingSide(null);
     }
@@ -56,7 +60,8 @@ export function SideButtons() {
   const isDisabled = !lockValidation.canLock;
 
   return (
-    <div className="w-full grid grid-cols-2 gap-2.5 sm:gap-4 pt-1">
+    <div className="w-full space-y-2">
+      <div className="w-full grid grid-cols-2 gap-2.5 sm:gap-4 pt-1">
       {/* Green Button with 3D Liquid Metal Shader */}
       <LiquidMetalButton
         onClick={() => handleLock('green')}
@@ -98,6 +103,14 @@ export function SideButtons() {
           <span className="text-[10px] sm:text-[11px] font-mono font-bold text-red-200 uppercase">Finish Down</span>
         </div>
       </LiquidMetalButton>
+    </div>
+
+      {lockError && (
+        <div className="flex items-center justify-center gap-1.5 text-xs text-red-400 font-mono">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          <span>{lockError}</span>
+        </div>
+      )}
     </div>
   );
 }

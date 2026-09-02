@@ -4,7 +4,7 @@ import React from 'react';
 import { useSomnix } from '@/lib/useSomnix';
 
 export function AmountChips() {
-  const { selectedAmount, setSelectedAmount } = useSomnix();
+  const { selectedAmount, setSelectedAmount, wallet } = useSomnix();
   const presets = [5, 10, 25];
 
   return (
@@ -12,7 +12,7 @@ export function AmountChips() {
       <div className="flex items-center justify-between">
         <span className="text-xs font-mono uppercase tracking-wider text-zinc-400">Lock Amount</span>
         <span className="text-xs font-mono font-bold text-white">
-          {selectedAmount} STT
+          {selectedAmount} {wallet.currencySymbol}
         </span>
       </div>
 
@@ -46,7 +46,7 @@ export function AmountChips() {
               : 'bg-[#0f0f14] text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-white'
           }`}
         >
-          {selectedAmount > 25 ? `${selectedAmount} STT` : 'Custom'}
+          {selectedAmount > 25 ? `${selectedAmount} ${wallet.currencySymbol}` : 'Custom'}
         </button>
       </div>
     </div>
