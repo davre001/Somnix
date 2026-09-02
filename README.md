@@ -356,6 +356,8 @@ Server-only values (never exposed to a future client) live in `backend/.env.loca
 DREAMDEX_INDEXER_URL=
 # Optional: Hasura role/admin-secret for privileged server-only indexer reads.
 DREAMDEX_INDEXER_ADMIN_SECRET=
+# Optional: SQLite file path. Defaults to ./somnix.db from the backend directory.
+SOMNIX_DB_PATH=
 ```
 
 `backend/src/index.ts` loads it explicitly via `dotenv` (`dotenv.config({ path: path.resolve(process.cwd(), ".env.local") })`), resolved from `process.cwd()` — which is `backend/` as long as `npm run dev`/`start` are launched from inside it, same as `npm install`.
