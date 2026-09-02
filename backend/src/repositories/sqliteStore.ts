@@ -5,10 +5,26 @@ import type { PersistenceStore } from "./interfaces.js";
 
 const databasePath = process.env.SOMNIX_DB_PATH ?? path.resolve(process.cwd(), "somnix.db");
 const db = new sqlite3.Database(databasePath);
+const currentSchemaVersion = 1;
 
 const initDatabasePromise = new Promise<void>((resolve, reject) => {
-  db.serialize(() => {
-    db.run(
+  db.get("PRAGMA user_version", (versionError, row: { user_version?: number }) => {
+    if (versionError) {
+      reject(versionError);
+      return;
+    }
+
+    const databaseVersion = Number(row?.user_version ?? 0);
+    if (databaseVersion > currentSchemaVersion) {
+      reject(
+        new Error(
+          `SQLite schema version ${databaseVersion} is newer than supported version ${currentSchemaVersion}`,
+        ),
+      );
+      return;
+    }
+
+    db.exec(
       `
         CREATE TABLE IF NOT EXISTS locks (
           id TEXT PRIMARY KEY,
@@ -26,58 +42,45 @@ const initDatabasePromise = new Promise<void>((resolve, reject) => {
           endPrice REAL,
           txHash TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS trades (
+          id TEXT PRIMARY KEY,
+          marketId TEXT NOT NULL,
+          pair TEXT NOT NULL,
+          length TEXT NOT NULL,
+          side TEXT NOT NULL,
+          amount REAL NOT NULL,
+          startPrice REAL NOT NULL,
+          currentPrice REAL NOT NULL,
+          greenOdds REAL NOT NULL,
+          redOdds REAL NOT NULL,
+          payout REAL NOT NULL,
+          isLive INTEGER NOT NULL DEFAULT 1
+        );
+
+        CREATE TABLE IF NOT EXISTS claims (
+          id TEXT PRIMARY KEY,
+          lockId TEXT NOT NULL,
+          walletAddress TEXT,
+          status TEXT NOT NULL,
+          payout REAL NOT NULL,
+          txHash TEXT NOT NULL,
+          claimedAt INTEGER NOT NULL
+        );
       `,
-      (err) => {
-        if (err) {
-          reject(err);
+      (schemaError) => {
+        if (schemaError) {
+          reject(schemaError);
           return;
         }
 
-        db.run(
-          `
-            CREATE TABLE IF NOT EXISTS trades (
-              id TEXT PRIMARY KEY,
-              marketId TEXT NOT NULL,
-              pair TEXT NOT NULL,
-              length TEXT NOT NULL,
-              side TEXT NOT NULL,
-              amount REAL NOT NULL,
-              startPrice REAL NOT NULL,
-              currentPrice REAL NOT NULL,
-              greenOdds REAL NOT NULL,
-              redOdds REAL NOT NULL,
-              payout REAL NOT NULL,
-              isLive INTEGER NOT NULL DEFAULT 1
-            );
-          `,
-          (tradeErr) => {
-            if (tradeErr) {
-              reject(tradeErr);
-              return;
-            }
-
-            db.run(
-              `
-                CREATE TABLE IF NOT EXISTS claims (
-                  id TEXT PRIMARY KEY,
-                  lockId TEXT NOT NULL,
-                  walletAddress TEXT,
-                  status TEXT NOT NULL,
-                  payout REAL NOT NULL,
-                  txHash TEXT NOT NULL,
-                  claimedAt INTEGER NOT NULL
-                );
-              `,
-              (claimErr) => {
-                if (claimErr) {
-                  reject(claimErr);
-                  return;
-                }
-                resolve();
-              },
-            );
-          },
-        );
+        db.run(`PRAGMA user_version = ${currentSchemaVersion}`, (versionUpdateError) => {
+          if (versionUpdateError) {
+            reject(versionUpdateError);
+            return;
+          }
+          resolve();
+        });
       },
     );
   });
