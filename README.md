@@ -279,9 +279,9 @@ The current backend endpoints are grouped as:
 
 - `/api/markets` — market listing + order book lookup
 - `/api/card` — generated share card image
-- `/api/lock` — lock creation and lookup
-- `/api/trade` — trade snapshot creation and lookup
-- `/api/claim` — claim creation and lookup
+- `/api/lock` — lock creation and lookup; lock metadata comes from the client-confirmed execution
+- `/api/trade` — confirmed trade snapshot creation and lookup
+- `/api/claim` — pending claim creation, status confirmation, and lookup
 
 The backend is not yet connected to the frontend or real blockchain execution. SQLite currently stores lock, trade, and claim records locally; wallet signing and blockchain transactions remain client-side responsibilities.
 
@@ -316,6 +316,18 @@ There's no `/api/config` route: `@somnia-chain/markets-sdk` ships the testnet ch
 
 There's no `/docs` route either — no API-docs UI is served right now. `dreamdex.ts` and `env.ts` are unchanged from before; only the HTTP layer around them changed.
 
+### API contracts
+
+The backend records client-confirmed results; it never signs wallet transactions.
+
+- `POST /api/lock` requires `marketId`, `pair`, `length`, `side`, `amount`, `startPrice`, `hidePriceUntil`, and `payout`. It accepts optional `walletAddress` and `txHash`.
+- `POST /api/trade` requires the market identifiers plus `amount`, `startPrice`, `currentPrice`, `greenOdds`, `redOdds`, `payout`, and `isLive`.
+- `GET /api/trade/:marketId?side=green&length=15m` returns the persisted snapshot for that market/side/window.
+- `POST /api/claim` requires `lockId` and the client-generated `txHash`; new claims are stored as `pending`.
+- `PATCH /api/claim/:lockId/status` accepts `pending`, `claimed`, or `failed` after the client observes the transaction result.
+
+All successful responses use `{ "ok": true, "data": ... }`; validation and not-found failures use `{ "ok": false, "error": "..." }`.
+
 ### Verification still happens on-chain, on the client
 
 The indexer proxy is a convenience, not a source of truth. Per the integration section above, the client always re-checks `getMarketOnchain` (status must be `Trading`) right before a tap — a slightly stale cached list from `/api/markets` should never be trusted to authorize a spend.
@@ -327,20 +339,29 @@ Everything backend-specific — config included — lives inside `backend/`. The
 ```text
 backend/
   src/
+    app.ts                     # Testable Express app without opening a port
     index.ts                   # Express app, mounts the routers, listens on PORT (default 4000)
     routes/
       markets.ts                # GET /api/markets, GET /api/markets/:id/orderbook
       card.ts                   # GET /api/card/:marketId/:side
       lock.ts                   # Lock creation and lookup
       trade.ts                  # Trade snapshot creation and lookup
-      claim.ts                  # Claim creation and lookup
+      claim.ts                  # Claim creation, status updates, and lookup
     lib/
       dreamdex.ts               # SomniaMarkets client (indexerUrl + testnet chain/addresses) + short TTL cache
       env.ts                    # typed server env (indexer URL, optional admin secret)
     services/                   # Service logic and request validation
     repositories/               # Persistence interfaces and SQLite implementation
+      index.ts
+      interfaces.ts
+      memoryStore.ts
+      sqliteStore.ts
+      sqliteStore.test.ts
     types/api.ts                # Shared API contracts
-    middleware/                 # Error and not-found handlers
+    middleware/                 # Async, error, and not-found handlers
+      asyncHandler.ts
+      errorHandler.ts
+    app.test.ts                 # HTTP contract tests
   package.json                  # scripts: dev (tsx watch), build (tsc), start (node dist/index.js)
   tsconfig.json                 # compiles src/**/*.ts -> dist/
   somnix.db                     # Local SQLite database created at runtime
@@ -350,7 +371,7 @@ backend/
 
 ### Env
 
-Server-only values (never exposed to a future client) live in `backend/.env.local`:
+Server-only values (never exposed to the browser client) live in `backend/.env.local`:
 
 ```bash
 DREAMDEX_INDEXER_URL=
@@ -378,6 +399,8 @@ cd somnix/backend
 cp .env.example .env.local   # then fill in DREAMDEX_INDEXER_URL
 npm install
 npm run dev                  # http://localhost:4000
+npm run build
+npm test
 ```
 
 Frontend:

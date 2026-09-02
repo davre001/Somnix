@@ -24,14 +24,12 @@ export interface UserLock {
   length: WindowLength;
   side: MarketSide;
   amount: number;
-  /** Outcome tokens actually acquired by the fill — redeemable 1:1 for collateral if `side` wins, 0 otherwise. */
-  payout: number;
-  /** Average price paid per outcome token (0-1 probability), from the real order fill. */
-  price: number;
   lockedAt: number;
   hidePriceUntil: number; // timestamp in ms
   status: 'locked' | 'won' | 'lost' | 'claimed';
+  payout: number;
   startPrice: number;
+  endPrice?: number;
   txHash?: string;
 }
 
@@ -42,13 +40,12 @@ export interface RecentWindow {
   startTime: number;
   endTime: number;
   startPrice: number;
+  endPrice: number;
   resultSide: MarketSide;
   userPlayed: boolean;
   userSide?: MarketSide;
   userAmount?: number;
-  /** Outcome tokens redeemed (real filled amount), when the user claimed. */
-  userPayout?: number;
-  userResult?: 'right' | 'wrong' | 'skipped' | 'void';
+  userResult?: 'right' | 'wrong' | 'skipped';
   claimed?: boolean;
   txHash?: string;
 }
@@ -58,8 +55,6 @@ export interface WalletState {
   isWatchMode: boolean;
   address: string | null;
   balance: number;
-  /** Collateral token symbol (e.g. "USDso"), resolved on-chain once known. */
-  currencySymbol: string;
   dailyBudgetTotal: number;
   dailyBudgetSpent: number;
 }
@@ -67,19 +62,4 @@ export interface WalletState {
 export interface LockResultReason {
   disabled: boolean;
   reason?: string;
-}
-
-/**
- * Persisted BEFORE a lock order is sent to the wallet — so a tab close/crash
- * between the wallet confirming and the app recording the fill isn't a silently
- * lost position. See useSomnix#reconcilePendingLock.
- */
-export interface PendingLockIntent {
-  id: string;
-  marketId: string;
-  pair: WindowPair;
-  length: WindowLength;
-  side: MarketSide;
-  amount: number;
-  createdAt: number;
 }

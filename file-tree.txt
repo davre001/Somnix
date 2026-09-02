@@ -9,16 +9,21 @@ Somnix/
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── src/
+│       ├── app.test.ts
+│       ├── app.ts
 │       ├── index.ts
 │       ├── lib/
 │       │   ├── dreamdex.ts
 │       │   └── env.ts
 │       ├── middleware/
+│       │   ├── asyncHandler.ts
 │       │   └── errorHandler.ts
 │       ├── repositories/
 │       │   ├── index.ts
 │       │   ├── interfaces.ts
-│       │   └── memoryStore.ts
+│       │   ├── memoryStore.ts
+│       │   ├── sqliteStore.test.ts
+│       │   └── sqliteStore.ts
 │       ├── routes/
 │       │   ├── card.ts
 │       │   ├── claim.ts

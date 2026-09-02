@@ -1,7 +1,0 @@
-packages:
-  - "frontend"
-  - "backend"
-allowBuilds:
-  esbuild: true
-  sqlite3: true
-  unrs-resolver: true

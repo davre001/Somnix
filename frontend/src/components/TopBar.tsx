@@ -17,9 +17,7 @@ import {
   ChevronDown,
   Check,
   Shield,
-  ExternalLink,
-  Loader2,
-  AlertCircle,
+  Zap,
 } from 'lucide-react';
 
 export function TopBar() {
@@ -31,7 +29,6 @@ export function TopBar() {
     disconnectWallet,
     toggleWatchMode,
     faucet,
-    isFauceting,
     currentMarket,
     goToLanding,
     enterApp,
@@ -40,32 +37,14 @@ export function TopBar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [faucetSuccess, setFaucetSuccess] = useState(false);
-  const [faucetError, setFaucetError] = useState<string | null>(null);
   const scrolled = useScroll(15);
 
   const budgetLeft = Math.max(0, wallet.dailyBudgetTotal - wallet.dailyBudgetSpent);
 
-  const handleFaucet = async () => {
-    if (isFauceting) return;
-    setFaucetError(null);
-    const res = await faucet();
-    if (res.success) {
-      setFaucetSuccess(true);
-      setTimeout(() => setFaucetSuccess(false), 1800);
-    } else {
-      setFaucetError(res.reason || 'Faucet request failed.');
-      setTimeout(() => setFaucetError(null), 3000);
-    }
-  };
-
-  // Watch Mode has no signer to leave it with — route to the real connect flow instead
-  // of faking a connected session.
-  const handleWatchModeButton = () => {
-    if (wallet.isWatchMode) {
-      openWalletModal();
-    } else {
-      toggleWatchMode(true);
-    }
+  const handleFaucet = () => {
+    faucet();
+    setFaucetSuccess(true);
+    setTimeout(() => setFaucetSuccess(false), 1800);
   };
 
   useEffect(() => {
@@ -155,7 +134,7 @@ export function TopBar() {
               <Shield className="w-3.5 h-3.5 text-zinc-400" />
               <span className="text-zinc-400">Budget:</span>
               <span className="font-bold text-white">
-                {budgetLeft.toFixed(0)}/{wallet.dailyBudgetTotal} {wallet.currencySymbol}
+                {budgetLeft.toFixed(0)}/{wallet.dailyBudgetTotal} STT
               </span>
             </div>
           )}
@@ -165,23 +144,15 @@ export function TopBar() {
             <div className="hidden sm:block">
               <LiquidMetalButton
                 onClick={handleFaucet}
-                disabled={isFauceting}
                 height={36}
                 width={105}
                 className="scale-90 origin-right"
               >
                 <div className="flex items-center gap-1 text-xs font-mono text-white">
-                  {isFauceting ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-300" />
-                  ) : faucetSuccess ? (
+                  {faucetSuccess ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400 font-bold">Received</span>
-                    </>
-                  ) : faucetError ? (
-                    <>
-                      <AlertCircle className="w-3.5 h-3.5 text-red-400" />
-                      <span className="text-red-400 font-bold">Failed</span>
+                      <span className="text-emerald-400 font-bold">+25 STT</span>
                     </>
                   ) : (
                     <>
@@ -243,62 +214,38 @@ export function TopBar() {
                     <div className="mb-3 space-y-2">
                       <div className="flex justify-between text-xs font-mono">
                         <span className="text-zinc-400">Wallet Balance</span>
-                        <span className="font-bold text-white">{wallet.balance.toFixed(2)} {wallet.currencySymbol}</span>
+                        <span className="font-bold text-white">{wallet.balance.toFixed(2)} STT</span>
                       </div>
                       <div className="flex justify-between text-xs font-mono">
                         <span className="text-zinc-400">Daily Budget Left</span>
                         <span className="text-zinc-200">
-                          {budgetLeft.toFixed(0)} / {wallet.dailyBudgetTotal} {wallet.currencySymbol}
+                          {budgetLeft.toFixed(0)} / {wallet.dailyBudgetTotal} STT
                         </span>
                       </div>
                     </div>
 
                     <button
                       onClick={handleFaucet}
-                      disabled={isFauceting}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs text-white border border-zinc-700/80 transition-colors font-mono disabled:opacity-60"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs text-white border border-zinc-700/80 transition-colors font-mono"
                     >
-                      {isFauceting ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-300" />
-                          <span>Requesting from Somnia Testnet faucet...</span>
-                        </>
-                      ) : faucetSuccess ? (
+                      {faucetSuccess ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400 font-bold">Received!</span>
-                        </>
-                      ) : faucetError ? (
-                        <>
-                          <AlertCircle className="w-3.5 h-3.5 text-red-400" />
-                          <span className="text-red-400 font-bold">{faucetError}</span>
+                          <span className="text-emerald-400 font-bold">+25 STT Added!</span>
                         </>
                       ) : (
                         <>
                           <PlusCircle className="w-3.5 h-3.5 text-zinc-300" />
-                          <span>Get Test {wallet.currencySymbol || 'Collateral'} Faucet</span>
+                          <span>Get Testnet STT (Faucet)</span>
                         </>
                       )}
                     </button>
-
-                    <a
-                      href="https://testnet.somnia.network/faucet"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-between py-2 px-2.5 mb-1.5 rounded-xl text-xs text-zinc-400 hover:bg-zinc-900 hover:text-white transition-colors"
-                    >
-                      <span className="flex items-center gap-2">
-                        <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>Official On-Chain Faucet</span>
-                      </span>
-                      <span className="text-[10px] font-mono text-zinc-500">External</span>
-                    </a>
                   </>
                 )}
 
                 <button
                   onClick={() => {
-                    handleWatchModeButton();
+                    toggleWatchMode();
                     setDropdownOpen(false);
                   }}
                   className="w-full flex items-center justify-between py-2 px-2.5 rounded-xl text-xs text-zinc-300 hover:bg-zinc-900 hover:text-white transition-colors"
@@ -466,18 +413,10 @@ export function TopBar() {
                 </div>
 
                 <button
-                  onClick={() => {
-                    handleFaucet();
-                  }}
-                  disabled={isFauceting}
-                  className="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-700 text-white font-mono text-xs flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
+                  onClick={handleFaucet}
+                  className="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-700 text-white font-mono text-xs flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                 >
-                  {isFauceting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-zinc-300" />
-                      <span>Requesting...</span>
-                    </>
-                  ) : faucetSuccess ? (
+                  {faucetSuccess ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-400" />
                       <span className="text-emerald-400 font-bold">+25 STT Added!</span>
@@ -485,18 +424,9 @@ export function TopBar() {
                   ) : (
                     <>
                       <PlusCircle className="w-4 h-4 text-zinc-300" />
-                      <span>Get Test {wallet.currencySymbol || 'Collateral'} Faucet</span>
+                      <span>Get 25 STT (Testnet Faucet)</span>
                     </>
                   )}
-                </button>
-                <button
-                  onClick={() => {
-                    disconnectWallet();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full py-3 rounded-2xl bg-red-950/60 border border-red-800 text-red-400 font-bold text-xs"
-                >
-                  Disconnect
                 </button>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -540,12 +470,12 @@ export function TopBar() {
 
                 <button
                   onClick={() => {
-                    handleWatchModeButton();
+                    toggleWatchMode();
                     setMobileMenuOpen(false);
                   }}
                   className="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-300 font-bold text-xs uppercase tracking-wider"
                 >
-                  {wallet.isWatchMode ? 'Connect Wallet' : 'Explore in Watch Mode'}
+                  {wallet.isWatchMode ? 'Exit Watch Mode' : 'Explore in Watch Mode'}
                 </button>
               </div>
             )}
