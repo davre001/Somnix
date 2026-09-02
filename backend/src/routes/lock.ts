@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createLockRecord } from "../services/lockService.js";
 import { parsePositiveNumber, isValidLength, isValidPair, isValidSide, validateWalletAddress } from "../services/validators.js";
 import { sqliteStore } from "../repositories/sqliteStore.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
 export const lockRouter = Router();
 
@@ -9,7 +10,7 @@ lockRouter.get("/health", (_req, res) => {
   res.json({ ok: true, data: { route: "lock" } });
 });
 
-lockRouter.post("/", async (req, res) => {
+lockRouter.post("/", asyncHandler(async (req, res) => {
   const { marketId, pair, length, side, amount, walletAddress, startPrice, hidePriceUntil, payout, txHash } = req.body ?? {};
 
   if (!marketId || typeof marketId !== "string") {
@@ -65,9 +66,9 @@ lockRouter.post("/", async (req, res) => {
   await sqliteStore.saveLock(lock);
 
   return res.status(201).json({ ok: true, data: lock });
-});
+}));
 
-lockRouter.get("/:id", async (req, res) => {
+lockRouter.get("/:id", asyncHandler(async (req, res) => {
   const lock = await sqliteStore.getLock(req.params.id);
 
   if (!lock) {
@@ -75,4 +76,4 @@ lockRouter.get("/:id", async (req, res) => {
   }
 
   return res.json({ ok: true, data: lock });
-});
+}));

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { buildTradeSnapshot } from "../services/tradeService.js";
 import { isValidLength, isValidPair, isValidSide, parsePositiveNumber, parseProbability } from "../services/validators.js";
 import { sqliteStore } from "../repositories/sqliteStore.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
 export const tradeRouter = Router();
 
@@ -9,7 +10,7 @@ tradeRouter.get("/health", (_req, res) => {
   res.json({ ok: true, data: { route: "trade" } });
 });
 
-tradeRouter.post("/", async (req, res) => {
+tradeRouter.post("/", asyncHandler(async (req, res) => {
   const { marketId, pair, length, side, amount, startPrice, currentPrice, greenOdds, redOdds, payout, isLive } = req.body ?? {};
 
   if (!marketId || typeof marketId !== "string") {
@@ -69,9 +70,9 @@ tradeRouter.post("/", async (req, res) => {
   await sqliteStore.saveTrade(trade);
 
   return res.status(201).json({ ok: true, data: trade });
-});
+}));
 
-tradeRouter.get("/:marketId", async (req, res) => {
+tradeRouter.get("/:marketId", asyncHandler(async (req, res) => {
   const { marketId } = req.params;
   const { side = "green", length = "15m" } = req.query as Record<string, string>;
   if (!isValidLength(length) || !isValidSide(side)) {
@@ -84,4 +85,4 @@ tradeRouter.get("/:marketId", async (req, res) => {
     return res.status(404).json({ ok: false, error: "Trade snapshot not found" });
   }
   return res.json({ ok: true, data: trade });
-});
+}));

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createClaimRecord } from "../services/claimService.js";
 import { isValidClaimStatus, validateWalletAddress } from "../services/validators.js";
 import { sqliteStore } from "../repositories/sqliteStore.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
 export const claimRouter = Router();
 
@@ -9,7 +10,7 @@ claimRouter.get("/health", (_req, res) => {
   res.json({ ok: true, data: { route: "claim" } });
 });
 
-claimRouter.post("/", async (req, res) => {
+claimRouter.post("/", asyncHandler(async (req, res) => {
   const { lockId, walletAddress, txHash } = req.body ?? {};
 
   if (!lockId || typeof lockId !== "string") {
@@ -35,9 +36,9 @@ claimRouter.post("/", async (req, res) => {
   const claim = createClaimRecord(lockId, normalizedWallet, lock.payout, txHash.trim());
   await sqliteStore.saveClaim(claim);
   return res.status(201).json({ ok: true, data: claim });
-});
+}));
 
-claimRouter.patch("/:lockId/status", async (req, res) => {
+claimRouter.patch("/:lockId/status", asyncHandler(async (req, res) => {
   const { status } = req.body ?? {};
   if (!isValidClaimStatus(status)) {
     return res.status(400).json({ ok: false, error: "status must be pending, claimed, or failed" });
@@ -54,9 +55,9 @@ claimRouter.patch("/:lockId/status", async (req, res) => {
 
   const claim = await sqliteStore.updateClaimStatus(req.params.lockId, status);
   return res.json({ ok: true, data: claim });
-});
+}));
 
-claimRouter.get("/:id", async (req, res) => {
+claimRouter.get("/:id", asyncHandler(async (req, res) => {
   const claim = await sqliteStore.getClaim(req.params.id);
 
   if (!claim) {
@@ -64,4 +65,4 @@ claimRouter.get("/:id", async (req, res) => {
   }
 
   return res.json({ ok: true, data: claim });
-});
+}));
