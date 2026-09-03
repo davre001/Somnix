@@ -8,6 +8,7 @@ dist/
 # Throwaway testnet-only keypair generated for live lock/claim testing —
 # no mainnet value, but never commit a private key regardless.
 .testnet-wallet
+.testnet-wallet-state.json
 npm-debug.log*
 *.tsbuildinfo
 .claude/
