@@ -532,7 +532,7 @@ export function TopBar() {
                   ) : faucetSuccess ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-400" />
-                      <span className="text-emerald-400 font-bold">+25 STT Added!</span>
+                      <span className="text-emerald-400 font-bold">Received!</span>
                     </>
                   ) : (
                     <>
