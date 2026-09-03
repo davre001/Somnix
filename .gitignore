@@ -5,6 +5,9 @@ dist/
 .env
 .env.local
 .env.*.local
+# Throwaway testnet-only keypair generated for live lock/claim testing —
+# no mainnet value, but never commit a private key regardless.
+.testnet-wallet
 npm-debug.log*
 *.tsbuildinfo
 .claude/

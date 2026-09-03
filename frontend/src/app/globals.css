@@ -10,6 +10,9 @@
   --accent-zinc: #71717a;
   --accent-green: #22c55e;
   --accent-red: #ef4444;
+  /* Self-hosted via @fontsource/source-code-pro (imported in layout.tsx) —
+     no next/font/google, so no build-time dependency on fonts.googleapis.com. */
+  --font-source-code-pro: 'Source Code Pro';
 }
 
 @theme {

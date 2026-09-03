@@ -1,15 +1,11 @@
 import type { Metadata, Viewport } from 'next';
-import { Source_Code_Pro } from 'next/font/google';
+import '@fontsource/source-code-pro/400.css';
+import '@fontsource/source-code-pro/500.css';
+import '@fontsource/source-code-pro/600.css';
+import '@fontsource/source-code-pro/700.css';
 import './globals.css';
 import { SomnixProvider } from '@/lib/useSomnix';
 import { ParticleWave } from '@/components/ui/particle-wave';
-
-const sourceCodePro = Source_Code_Pro({
-  variable: '--font-source-code-pro',
-  subsets: ['latin'],
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
-});
 
 export const metadata: Metadata = {
   title: 'SOMNIX · Somnia Event Contracts',
@@ -31,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${sourceCodePro.variable} dark antialiased`}>
+    <html lang="en" className="dark antialiased">
       <head>
         {/* Speeds up the first TradingView chart load (components/LiveCryptoChart.tsx) */}
         <link rel="preconnect" href="https://s.tradingview.com" />
