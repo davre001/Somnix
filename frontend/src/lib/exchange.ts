@@ -43,22 +43,53 @@ export function bindExchangeSigner(walletClient: WalletClient | undefined): void
   getExchange().setSigner(walletClient ? { walletClient } : {});
 }
 
+// Known on-chain revert reasons, translated to plain language. Anything not
+// listed here falls back to a generic message rather than showing the raw
+// PascalCase Solidity error name.
+const CONTRACT_REVERT_MESSAGES: Record<string, string> = {
+  InsufficientBalance: "You don't have enough balance for this.",
+  SlippageExceeded: 'The price moved too much before this could go through — try again.',
+  MarketClosed: 'This window has already closed.',
+  MarketNotResolved: "This window hasn't resolved yet — check back shortly.",
+};
+
+/**
+ * The SDK's InvalidInputError carries genuinely useful detail (which side has
+ * no liquidity, which amount is too small) but phrases it in internal terms —
+ * raw market-symbol notation like "BTC-8079813-03SEP26-1551/tUSDC#YES" is not
+ * something a trader should ever see. Recognize the common real cases and
+ * translate them; anything unrecognized still gets a safe, plain fallback
+ * instead of the raw internal string.
+ */
+function describeInvalidInput(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes('opposite side of the book is empty') || lower.includes('cannot price')) {
+    return "No one's currently offering the other side of this bet — try a different window, or wait a moment.";
+  }
+  if (lower.includes('minimum') || lower.includes('too small')) {
+    return 'That amount is too small for this market — try a larger amount.';
+  }
+  if (lower.includes('has no') && lower.includes('outcome')) {
+    return "This window isn't available to lock right now — try a different one.";
+  }
+  return "That amount or window isn't valid right now — try adjusting it.";
+}
+
 /** Turns any error the exchange throws into a message safe to show a user. */
 export function describeExchangeError(err: unknown): string {
   if (err instanceof SignerRequiredError) return 'Connect your wallet to continue.';
   if (err instanceof ContractRevertError) {
-    const detail = err.errorName || err.reason;
-    return `The network rejected this transaction${detail ? `: ${detail}` : '.'}`;
+    const code = err.errorName || err.reason || '';
+    return CONTRACT_REVERT_MESSAGES[code] ?? 'The network rejected this transaction. Please try again.';
   }
-  if (err instanceof InvalidInputError) return err.message;
+  if (err instanceof InvalidInputError) return describeInvalidInput(err.message);
   if (err instanceof IndexerError) return 'Somnia indexer is unreachable right now — try again shortly.';
   if (err instanceof RpcError) return 'Could not reach the Somnia network — check your connection and try again.';
-  if (err instanceof NotConfiguredError) return `Missing configuration: ${err.what}.`;
-  if (err instanceof SomniaMarketsError) return err.message;
+  if (err instanceof NotConfiguredError) return "Somnix isn't set up correctly right now — please try again later.";
+  if (err instanceof SomniaMarketsError) return 'Something went wrong on the Somnia network. Please try again.';
   const rejected = err as { code?: number };
   if (rejected?.code === 4001) return 'Rejected in wallet.';
-  if (err instanceof Error) return err.message;
-  return 'Something went wrong.';
+  return 'Something went wrong. Please try again.';
 }
 
 /**

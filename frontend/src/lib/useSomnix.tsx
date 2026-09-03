@@ -422,11 +422,15 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
       chosenAddress = accounts?.[0];
       await requestSomniaNetwork(provider);
     } catch (e: unknown) {
+      console.error('Wallet connection error:', e);
       const errObj = e as { code?: number };
       if (errObj?.code === 4001) {
         throw new Error('Connection request was rejected in your wallet.');
       }
-      throw e instanceof Error ? e : new Error('Failed to connect wallet.');
+      // Never rethrow the raw provider error here — it can be an ugly
+      // JSON-RPC/internal message, and this bubbles straight to the UI
+      // (WalletModal shows it as-is). Full detail is already in the console.
+      throw new Error('Could not connect to your wallet. Please unlock it and try again.');
     }
 
     if (!chosenAddress) {
