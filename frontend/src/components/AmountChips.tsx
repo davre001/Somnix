@@ -1,11 +1,24 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useSomnix } from '@/lib/useSomnix';
 
 export function AmountChips() {
   const { selectedAmount, setSelectedAmount, wallet } = useSomnix();
   const presets = [5, 10, 25];
+  const isCustomValue = !presets.includes(selectedAmount);
+
+  const [customMode, setCustomMode] = useState(false);
+  const [customInput, setCustomInput] = useState('');
+
+  const commitCustom = () => {
+    const parsed = Number(customInput);
+    if (customInput.trim() !== '' && Number.isFinite(parsed) && parsed > 0) {
+      setSelectedAmount(parsed);
+    }
+    setCustomMode(false);
+    setCustomInput('');
+  };
 
   return (
     <div className="w-full flex flex-col gap-2">
@@ -18,11 +31,14 @@ export function AmountChips() {
 
       <div className="grid grid-cols-4 gap-2">
         {presets.map((preset) => {
-          const isSelected = selectedAmount === preset;
+          const isSelected = selectedAmount === preset && !customMode;
           return (
             <button
               key={preset}
-              onClick={() => setSelectedAmount(preset)}
+              onClick={() => {
+                setCustomMode(false);
+                setSelectedAmount(preset);
+              }}
               className={`min-h-[44px] py-2.5 rounded-xl font-mono text-sm font-bold transition-all duration-150 flex items-center justify-center border active:scale-[0.98] ${
                 isSelected
                   ? 'bg-white text-black border-white shadow-lg shadow-white/10 scale-[1.01]'
@@ -34,20 +50,42 @@ export function AmountChips() {
           );
         })}
 
-        {/* Custom amount trigger / chip */}
-        <button
-          onClick={() => {
-            const next = selectedAmount === 50 ? 5 : selectedAmount === 25 ? 50 : 25;
-            setSelectedAmount(next);
-          }}
-          className={`min-h-[44px] py-2.5 rounded-xl font-mono text-xs font-bold transition-all duration-150 flex items-center justify-center border active:scale-[0.98] ${
-            !presets.includes(selectedAmount)
-              ? 'bg-white text-black border-white shadow-lg shadow-white/10 scale-[1.01]'
-              : 'bg-[#0f0f14] text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-white'
-          }`}
-        >
-          {selectedAmount > 25 ? `${selectedAmount} ${wallet.currencySymbol}` : 'Custom'}
-        </button>
+        {/* Custom amount: a real numeric entry, not a hidden cycle through fixed values */}
+        {customMode ? (
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            autoFocus
+            placeholder="Amt"
+            value={customInput}
+            onChange={(e) => setCustomInput(e.target.value)}
+            onBlur={commitCustom}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+              if (e.key === 'Escape') {
+                setCustomMode(false);
+                setCustomInput('');
+              }
+            }}
+            className="min-h-[44px] w-full py-2.5 px-2 rounded-xl font-mono text-sm font-bold text-center bg-[#0f0f14] text-white border border-white focus:outline-none focus:ring-1 focus:ring-white"
+          />
+        ) : (
+          <button
+            onClick={() => {
+              setCustomMode(true);
+              setCustomInput(isCustomValue ? String(selectedAmount) : '');
+            }}
+            className={`min-h-[44px] py-2.5 rounded-xl font-mono text-xs font-bold transition-all duration-150 flex items-center justify-center border active:scale-[0.98] ${
+              isCustomValue
+                ? 'bg-white text-black border-white shadow-lg shadow-white/10 scale-[1.01]'
+                : 'bg-[#0f0f14] text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-white'
+            }`}
+          >
+            {isCustomValue ? `${selectedAmount} ${wallet.currencySymbol}` : 'Custom'}
+          </button>
+        )}
       </div>
     </div>
   );

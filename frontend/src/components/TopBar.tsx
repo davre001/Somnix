@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSomnix } from '@/lib/useSomnix';
@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Loader2,
   AlertCircle,
+  Copy,
 } from 'lucide-react';
 
 export function TopBar() {
@@ -41,9 +42,38 @@ export function TopBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [faucetSuccess, setFaucetSuccess] = useState(false);
   const [faucetError, setFaucetError] = useState<string | null>(null);
+  const [addressCopied, setAddressCopied] = useState(false);
   const scrolled = useScroll(15);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const budgetLeft = Math.max(0, wallet.dailyBudgetTotal - wallet.dailyBudgetSpent);
+
+  // Close the wallet dropdown on an outside click or Escape — it previously only
+  // closed via its own trigger button or an action inside it.
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDropdownOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [dropdownOpen]);
+
+  const handleCopyAddress = () => {
+    if (!wallet.address) return;
+    navigator.clipboard.writeText(wallet.address);
+    setAddressCopied(true);
+    setTimeout(() => setAddressCopied(false), 1800);
+  };
 
   const handleFaucet = async () => {
     if (isFauceting) return;
@@ -195,7 +225,7 @@ export function TopBar() {
           )}
 
           {/* Desktop Wallet / Watch Mode Dropdown Button */}
-          <div className="relative hidden sm:block">
+          <div className="relative hidden sm:block" ref={dropdownRef}>
             {wallet.isConnected ? (
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -240,6 +270,20 @@ export function TopBar() {
 
                 {wallet.isConnected && (
                   <>
+                    <button
+                      onClick={handleCopyAddress}
+                      className="w-full flex items-center justify-between py-2 px-2.5 mb-2 rounded-xl bg-black/40 border border-zinc-800 text-xs font-mono text-zinc-300 hover:bg-zinc-900 hover:text-white transition-colors group"
+                    >
+                      <span>{shortenAddress(wallet.address)}</span>
+                      {addressCopied ? (
+                        <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                          <Check className="w-3.5 h-3.5" /> Copied
+                        </span>
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 text-zinc-500 group-hover:text-white" />
+                      )}
+                    </button>
+
                     <div className="mb-3 space-y-2">
                       <div className="flex justify-between text-xs font-mono">
                         <span className="text-zinc-400">Wallet Balance</span>
@@ -457,13 +501,21 @@ export function TopBar() {
           <div className="space-y-3 pt-4 border-t border-zinc-800">
             {wallet.isConnected ? (
               <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-mono text-zinc-400 px-1">
+                <button
+                  onClick={handleCopyAddress}
+                  className="w-full flex items-center justify-between text-xs font-mono text-zinc-400 px-1 py-1 active:opacity-70"
+                >
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span>{shortenAddress(wallet.address)}</span>
+                    {addressCopied ? (
+                      <Check className="w-3 h-3 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3 h-3 text-zinc-500" />
+                    )}
                   </div>
-                  <span className="text-white font-bold font-mono">{wallet.balance.toFixed(2)} STT</span>
-                </div>
+                  <span className="text-white font-bold font-mono">{wallet.balance.toFixed(2)} {wallet.currencySymbol}</span>
+                </button>
 
                 <button
                   onClick={() => {

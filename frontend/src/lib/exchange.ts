@@ -200,7 +200,13 @@ export async function getResolution(marketId: string): Promise<MarketResolution>
 
 /** Redeems `amount` of the winning outcome token on `marketId` for collateral. */
 export async function claimWinnings(marketId: string, amount: number): Promise<{ hash: string }> {
-  const res = await getExchange().redeem(marketId, amount);
+  const ex = getExchange();
+  // redeem() looks the market up in the SDK's local cache, populated only by
+  // loadMarkets() — on a fresh page load (no prior lock/findLiveMarket call in
+  // this session) that cache is empty and redeem() throws "unknown market ref
+  // ... call loadMarkets() first" instead of actually claiming.
+  await ex.loadMarkets();
+  const res = await ex.redeem(marketId, amount);
   return { hash: res.hash };
 }
 
