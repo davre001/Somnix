@@ -4,7 +4,6 @@ const STORAGE_KEYS = {
   ACTIVE_LOCK: 'somnix_active_lock_v1',
   LOCK_HISTORY: 'somnix_lock_history_v1',
   RECENT_WINDOWS: 'somnix_recent_windows_v1',
-  DAILY_BUDGET: 'somnix_daily_budget_v1',
   WATCH_MODE: 'somnix_watch_mode_v1',
   PENDING_LOCK: 'somnix_pending_lock_v1',
 };

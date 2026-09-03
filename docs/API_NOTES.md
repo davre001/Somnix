@@ -131,9 +131,6 @@ see `exchange.ts#isAmbiguousTxError` and `docs/THREAT_MODEL.md` Threat 2:
   alone, retried next signer bind).
 - **Single lock per window**: `lockValidation` rejects a second lock once
   `activeLock.marketId` matches the current window's market id.
-- **Budget guardrail**: `wallet.dailyBudgetSpent`, tracked in
-  `localStorage`'s `somnix_daily_budget_v1`, is a client-side UX cap only —
-  not a protocol-enforced limit.
 
 ---
 

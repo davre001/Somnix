@@ -103,8 +103,6 @@ const DEFAULT_WALLET: WalletState = {
   address: null,
   balance: 0,
   currencySymbol: '',
-  dailyBudgetTotal: 20.0,
-  dailyBudgetSpent: 5.0,
 };
 
 function getInitialWalletState(): WalletState {
@@ -113,20 +111,11 @@ function getInitialWalletState(): WalletState {
     const savedConnected = localStorage.getItem('somnix_wallet_connected_v1');
     const savedAddress = localStorage.getItem('somnix_wallet_address_v1');
     const savedWatchMode = localStorage.getItem('somnix_watch_mode_v1');
-    const savedBudget = localStorage.getItem('somnix_daily_budget_v1');
-
-    let total = 20.0;
-    let spent = 5.0;
-    if (savedBudget) {
-      const parsed = JSON.parse(savedBudget);
-      total = parsed.total ?? 20.0;
-      spent = parsed.spent ?? 5.0;
-    }
 
     if (savedConnected === 'true' && savedAddress) {
-      return { ...DEFAULT_WALLET, isConnected: true, address: savedAddress, dailyBudgetTotal: total, dailyBudgetSpent: spent };
+      return { ...DEFAULT_WALLET, isConnected: true, address: savedAddress };
     } else if (savedWatchMode === 'true') {
-      return { ...DEFAULT_WALLET, isWatchMode: true, dailyBudgetTotal: total, dailyBudgetSpent: spent };
+      return { ...DEFAULT_WALLET, isWatchMode: true };
     }
   } catch {
     // fallback
@@ -398,10 +387,6 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
     if (wallet.balance < selectedAmount) {
       return { canLock: false, reason: `Not enough ${wallet.currencySymbol || 'collateral'} balance` };
     }
-    const budgetRemaining = wallet.dailyBudgetTotal - wallet.dailyBudgetSpent;
-    if (selectedAmount > budgetRemaining) {
-      return { canLock: false, reason: `Exceeds today's budget (${budgetRemaining} ${wallet.currencySymbol} left)` };
-    }
     if (activeLock && activeLock.marketId === currentMarket.id) {
       return { canLock: false, reason: 'You already locked a guess for this window' };
     }
@@ -458,8 +443,6 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
       isWatchMode: false,
       address: chosenAddress!,
       balance: realBalance ?? 0,
-      dailyBudgetTotal: 20.0,
-      dailyBudgetSpent: 5.0,
     }));
     setIsViewingLanding(false);
 
@@ -579,16 +562,6 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
       );
       setActiveLock(newLock);
 
-      setWallet((w) => {
-        const updated = { ...w, dailyBudgetSpent: w.dailyBudgetSpent + selectedAmount };
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(
-            'somnix_daily_budget_v1',
-            JSON.stringify({ total: updated.dailyBudgetTotal, spent: updated.dailyBudgetSpent })
-          );
-        }
-        return updated;
-      });
       if (wallet.address) refreshBalance(wallet.address);
 
       // Best-effort history mirror — the lock already happened on-chain regardless

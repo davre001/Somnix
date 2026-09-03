@@ -63,8 +63,6 @@ export interface WalletState {
   balance: number;
   /** Collateral token symbol (e.g. "USDso"), resolved on-chain once known. */
   currencySymbol: string;
-  dailyBudgetTotal: number;
-  dailyBudgetSpent: number;
 }
 
 export interface LockResultReason {

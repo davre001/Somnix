@@ -256,8 +256,8 @@ export function LandingPage() {
               },
               {
                 icon: <ShieldCheck className="w-5 h-5" />,
-                title: 'Hard Cap & Day Budget',
-                desc: 'You can only lose what you choose. Built-in daily budget cap prevents over-trading and chasing losses.',
+                title: 'Hard Cap on Losses',
+                desc: 'You can only lose what you choose. Every lock has a fixed max loss — the amount you put in, never more.',
                 glow: 'group-hover:shadow-[0_0_40px_rgba(59,130,246,0.08)]',
                 iconBg: 'bg-blue-950/60 border-blue-800/40',
                 delay: 0.1,
@@ -421,7 +421,7 @@ export function LandingPage() {
               {
                 icon: <ShieldCheck className="w-5 h-5 text-blue-400" />,
                 title: 'Hard cap on losses',
-                desc: 'Set a daily budget once. Somnix enforces it on-chain — you literally cannot overspend, even if you want to.',
+                desc: 'The most you can ever lose on a call is the amount you locked — outcome tokens redeem for zero on the losing side, never more.',
                 glow: 'hover:border-blue-800/40 hover:shadow-[0_0_30px_rgba(59,130,246,0.06)]',
               },
               {
@@ -489,7 +489,7 @@ export function LandingPage() {
                 <span className="text-emerald-400">your call?</span>
               </h2>
               <p className="text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
-                Connect your wallet, set your daily budget, and lock your first Green or Red in under 30 seconds.
+                Connect your wallet and lock your first Green or Red in under 30 seconds.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -566,7 +566,6 @@ export function LandingPage() {
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Discipline &amp; Safety</h4>
               <ul className="space-y-2 text-xs font-mono">
-                <li><span className="text-zinc-300">Daily Budget Caps</span></li>
                 <li><span className="text-zinc-300">Hard Cap Loss Guarantee</span></li>
                 <li><span className="text-zinc-300">Zen Lock Timers</span></li>
                 <li><span className="text-zinc-300">~1.92x Binary Multiplier</span></li>

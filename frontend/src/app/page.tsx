@@ -8,7 +8,6 @@ import { WindowSwitch } from '@/components/WindowSwitch';
 import { Countdown } from '@/components/Countdown';
 import { OddsBar } from '@/components/OddsBar';
 import { AmountChips } from '@/components/AmountChips';
-import { BudgetLine } from '@/components/BudgetLine';
 import { SideButtons } from '@/components/SideButtons';
 import { ReasonText } from '@/components/ReasonText';
 import { LandingPage } from '@/components/LandingPage';
@@ -18,7 +17,6 @@ import { LiveCryptoChart } from '@/components/LiveCryptoChart';
 import { useSomnix } from '@/lib/useSomnix';
 import { getWindowDurationMs } from '@/lib/marketService';
 import {
-  Shield,
   History,
   Share2,
   TrendingUp,
@@ -38,7 +36,6 @@ export default function HomePage() {
     remainingSeconds,
     lockValidation,
     activeLock,
-    wallet,
     recents,
   } = useSomnix();
 
@@ -64,9 +61,6 @@ export default function HomePage() {
       </div>
     );
   }
-
-  const budgetLeft = Math.max(0, wallet.dailyBudgetTotal - wallet.dailyBudgetSpent);
-  const budgetPct = Math.min(100, (wallet.dailyBudgetSpent / wallet.dailyBudgetTotal) * 100);
 
   return (
     <div className="w-full min-h-screen flex flex-col bg-transparent">
@@ -134,7 +128,6 @@ export default function HomePage() {
             {/* Amount Selector Chips */}
             <div className="p-4 rounded-2xl bg-[#0c0c10] border border-zinc-800/80 space-y-3">
               <AmountChips />
-              <BudgetLine />
             </div>
 
             {/* Reason notice if buttons are disabled */}
@@ -148,40 +141,6 @@ export default function HomePage() {
 
           {/* Right Sidebar Information Panels (4 Columns) – shows below on mobile */}
           <div className="lg:col-span-4 space-y-3 sm:space-y-4 order-2 lg:order-2">
-            {/* Day Budget Tracker Card */}
-            {wallet.isConnected && (
-              <div className="p-5 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-white" />
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                      Daily Discipline Budget
-                    </h3>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-white">
-                    {budgetLeft.toFixed(0)} {wallet.currencySymbol} left
-                  </span>
-                </div>
-
-                <p className="text-[11px] text-zinc-400 leading-snug">
-                  SOMNIX sets a hard cap so you never over-trade. Winnings refresh your budget on claim.
-                </p>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[10px] font-mono text-zinc-500">
-                    <span>Spent: {wallet.dailyBudgetSpent.toFixed(0)} {wallet.currencySymbol}</span>
-                    <span>Max: {wallet.dailyBudgetTotal} {wallet.currencySymbol}</span>
-                  </div>
-                  <div className="w-full h-2 bg-black rounded-full overflow-hidden border border-zinc-800">
-                    <div
-                      className="h-full bg-white rounded-full transition-all duration-300"
-                      style={{ width: `${budgetPct}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Market Info Summary */}
             <div className="p-5 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">

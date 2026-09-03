@@ -16,7 +16,6 @@ import {
   PlusCircle,
   ChevronDown,
   Check,
-  Shield,
   ExternalLink,
   Loader2,
   AlertCircle,
@@ -45,8 +44,6 @@ export function TopBar() {
   const [addressCopied, setAddressCopied] = useState(false);
   const scrolled = useScroll(15);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const budgetLeft = Math.max(0, wallet.dailyBudgetTotal - wallet.dailyBudgetSpent);
 
   // Close the wallet dropdown on an outside click or Escape — it previously only
   // closed via its own trigger button or an action inside it.
@@ -179,17 +176,6 @@ export function TopBar() {
 
         {/* Right side Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Day budget indicator (if connected on desktop) */}
-          {wallet.isConnected && (
-            <div className="hidden lg:flex items-center gap-1.5 py-1 px-3 rounded-full bg-[#0c0c10] border border-zinc-800 text-xs font-mono">
-              <Shield className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="text-zinc-400">Budget:</span>
-              <span className="font-bold text-white">
-                {budgetLeft.toFixed(0)}/{wallet.dailyBudgetTotal} {wallet.currencySymbol}
-              </span>
-            </div>
-          )}
-
           {/* Faucet Liquid Metal button on desktop/tablet */}
           {wallet.isConnected && (
             <div className="hidden sm:block">
@@ -288,12 +274,6 @@ export function TopBar() {
                       <div className="flex justify-between text-xs font-mono">
                         <span className="text-zinc-400">Wallet Balance</span>
                         <span className="font-bold text-white">{wallet.balance.toFixed(2)} {wallet.currencySymbol}</span>
-                      </div>
-                      <div className="flex justify-between text-xs font-mono">
-                        <span className="text-zinc-400">Daily Budget Left</span>
-                        <span className="text-zinc-200">
-                          {budgetLeft.toFixed(0)} / {wallet.dailyBudgetTotal} {wallet.currencySymbol}
-                        </span>
                       </div>
                     </div>
 
@@ -457,7 +437,7 @@ export function TopBar() {
               </Link>
             </div>
 
-            {/* Mobile Market & Budget Overview Card */}
+            {/* Mobile Market Overview Card */}
             <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-3 text-xs font-mono">
               <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
                 <span className="text-zinc-400">Current Market</span>
@@ -473,28 +453,6 @@ export function TopBar() {
                   Red {currentMarket.redOdds}%
                 </span>
               </div>
-
-              {wallet.isConnected && (
-                <div className="pt-2 border-t border-zinc-800/80 space-y-1">
-                  <div className="flex justify-between text-[11px] text-zinc-400">
-                    <span>Daily Budget Left</span>
-                    <span className="text-white font-bold">
-                      {budgetLeft.toFixed(0)} / {wallet.dailyBudgetTotal} STT
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 bg-black rounded-full overflow-hidden border border-zinc-800">
-                    <div
-                      className="h-full bg-white rounded-full transition-all duration-300"
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          (wallet.dailyBudgetSpent / wallet.dailyBudgetTotal) * 100
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 

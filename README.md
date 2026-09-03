@@ -50,7 +50,6 @@ The question is small. The habit is loud. Normal trading apps make the habit wor
 **Lock & Reveal.**
 
 - One main call per window (you are deciding, not day-trading).
-- A **day budget** so you cannot keep tapping until the money is gone.
 - After you lock, **no live price** until the window is over.
 - A hard cap: the most you can lose is the amount you chose.
 - **Claim** is part of the flow — winning money does not appear by magic.
@@ -75,12 +74,11 @@ What you see:
 - What the market thinks (example: 58% Green / 42% Red)
 - A warning if Green or Red is already very expensive (example: 75% Green)
 - Amount buttons (5 / 10 / 25)
-- How much of **today’s budget** is left
 - Two big buttons: Green and Red
 
 **Role:** understand the question and lock a call.
 
-If there is no price, almost no time left, or the budget is used up, the buttons do not work. The app explains why.
+If there is no price or almost no time left, the buttons do not work. The app explains why.
 
 ### 2. Locked — “Put the phone down”
 
@@ -109,7 +107,6 @@ What you see:
 What you see:
 
 - Last few windows and whether you were right
-- Day budget used
 - **Share a card**: “I locked Green on BTC this hour.”
 
 **Role:** make it feel like a score, and let a friend join without learning DreamDEX.
@@ -124,7 +121,6 @@ What you see:
 
 - Lock & Reveal (hide price after you tap)
 - One main call per window
-- Day budget
 - Green / Red in plain language
 - Max loss shown before confirm
 - Claim after the window settles
@@ -146,14 +142,13 @@ What you see:
 **Someone who will trade**
 
 1. Open the app. Connect a wallet on the test network.
-2. Set or accept a day budget.
-3. Look at this window: time left + Green/Red odds.
-4. Pick an amount. Read “max loss = this amount.”
-5. Tap Green or Red. Confirm.
-6. Land on the Locked screen. Live price is gone.
-7. Leave. Come back when the timer ends.
-8. See the result. If you won, tap Claim.
-9. Choose Same again, share a card, or stop for the day.
+2. Look at this window: time left + Green/Red odds.
+3. Pick an amount. Read “max loss = this amount.”
+4. Tap Green or Red. Confirm.
+5. Land on the Locked screen. Live price is gone.
+6. Leave. Come back when the timer ends.
+7. See the result. If you won, tap Claim.
+8. Choose Same again, share a card, or stop for now.
 
 **Someone who only wants to look**
 
@@ -169,7 +164,7 @@ If a tap would fail (closed window, empty market, amount too small, not enough f
 Three layers:
 
 1. **You** — Green or Red, and how much.
-2. **SOMNIX** — lock screen, budget, claim, next window, friend card.
+2. **SOMNIX** — lock screen, claim, next window, friend card.
 3. **DreamDEX on Somnia** — the real bets, the real prices, the real win/lose rule.
 
 We do **not** create our own betting system. We use **DreamDEX Event Contracts**.
@@ -255,7 +250,7 @@ Without test funds or a live window, judges can see the screens, but they will w
 
 **What we store in the app**
 
-- Day budget and “already locked this window”
+- “Already locked this window”
 - Hide-price state until the timer ends
 - Last results for the score list
 

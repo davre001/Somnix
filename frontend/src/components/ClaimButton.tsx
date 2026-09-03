@@ -61,7 +61,7 @@ export function ClaimButton({ lock, onClaimSuccess }: ClaimButtonProps) {
           <span>Redeemed {lock.payout.toFixed(2)} {wallet.currencySymbol}</span>
         </div>
         <p className="text-[11px] text-zinc-400 font-mono">
-          Paid. Budget can be used on the next window.
+          Paid. Ready for the next window.
         </p>
       </div>
     );

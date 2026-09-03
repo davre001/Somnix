@@ -14,24 +14,17 @@ describe('Safety Guards & Validation Rules', () => {
     expect(getCutoffSeconds('1h')).toBe(60);
   });
 
-  it('should prevent locking if remaining budget is exceeded', () => {
-    const dailyBudgetTotal = 20;
-    const dailyBudgetSpent = 15;
-    const remainingBudget = dailyBudgetTotal - dailyBudgetSpent;
+  it('should prevent locking more than the wallet balance', () => {
+    const walletBalance = 15;
+    const requestedAmount = 20;
 
-    const requestedAmount = 10;
-    const canSpend = requestedAmount <= remainingBudget;
-
-    expect(remainingBudget).toBe(5);
-    expect(canSpend).toBe(false);
+    expect(requestedAmount <= walletBalance).toBe(false);
   });
 
-  it('should allow locking within budget and balance constraints', () => {
+  it('should allow locking within the wallet balance', () => {
     const walletBalance = 50;
-    const remainingBudget = 15;
     const requestedAmount = 10;
 
-    const valid = requestedAmount <= walletBalance && requestedAmount <= remainingBudget;
-    expect(valid).toBe(true);
+    expect(requestedAmount <= walletBalance).toBe(true);
   });
 });

@@ -30,9 +30,9 @@ const CARDS: FeatureCard[] = [
     id: 2,
     icon: ShieldCheck,
     tag: 'HARD CAP',
-    title: 'Hard Cap & Day Budget',
+    title: 'Hard Cap on Losses',
     description:
-      'You can only lose what you choose. A built-in daily discipline budget prevents over-trading and chasing losses.',
+      'You can only lose what you choose. Every lock has a fixed max loss — the amount you put in, never more.',
     accent: 'from-blue-500/10 to-transparent',
     iconColor: 'text-blue-400',
     tagColor: 'text-blue-400 border-blue-500/30 bg-blue-500/5',
