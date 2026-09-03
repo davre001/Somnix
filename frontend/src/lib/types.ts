@@ -33,6 +33,8 @@ export interface UserLock {
   status: 'locked' | 'won' | 'lost' | 'claimed';
   startPrice: number;
   txHash?: string;
+  /** The backend history mirror's own id for this lock, once reported — see history.ts. */
+  backendLockId?: string;
 }
 
 export interface RecentWindow {

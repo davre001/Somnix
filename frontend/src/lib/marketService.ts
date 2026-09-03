@@ -15,8 +15,6 @@ const BASE_PRICES: Record<WindowPair, number> = {
   ETH: 3485.20,
 };
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-
 /**
  * Returns duration in milliseconds for a window length
  */
@@ -91,18 +89,19 @@ export async function fetchLiveMarkets(pair: WindowPair, length: WindowLength): 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2500);
 
-    const res = await fetch(`${BACKEND_URL}/api/markets`, {
+    const res = await fetch(`/api/markets`, {
       signal: controller.signal,
     });
     clearTimeout(timeout);
 
     if (res.ok) {
-      const data = await res.json();
-      if (data.markets && Array.isArray(data.markets) && data.markets.length > 0) {
+      const body = await res.json();
+      const markets = body?.data?.markets;
+      if (Array.isArray(markets) && markets.length > 0) {
         // Backend proxies DreamDEX `BinaryMarket` rows: asset is the underlying
         // symbol (e.g. "BTC"), interval is the series cadence label ("1m".."24h"),
         // id is the real marketId used by the orderbook route.
-        const matched = data.markets.find(
+        const matched = markets.find(
           (m: { id?: string; asset?: string; interval?: string | null }) =>
             m.asset === pair && m.interval === length
         );
@@ -130,16 +129,17 @@ export async function fetchLiveOdds(marketId: string): Promise<{ greenOdds: numb
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2500);
 
-    const res = await fetch(`${BACKEND_URL}/api/markets/${encodeURIComponent(marketId)}/orderbook`, {
+    const res = await fetch(`/api/markets/${encodeURIComponent(marketId)}/orderbook`, {
       signal: controller.signal,
     });
     clearTimeout(timeout);
 
     if (res.ok) {
-      const data = await res.json();
-      if (data.orderBook) {
-        const yesBids = data.orderBook.yesBids || [];
-        const noBids = data.orderBook.noBids || [];
+      const body = await res.json();
+      const orderBook = body?.data?.orderBook;
+      if (orderBook) {
+        const yesBids = orderBook.yesBids || [];
+        const noBids = orderBook.noBids || [];
 
         if (yesBids.length > 0 && noBids.length > 0) {
           const yesPrice = parseFloat(yesBids[0].price);
@@ -212,7 +212,6 @@ export function clearPendingLockIntent(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEYS.PENDING_LOCK);
 }
-
 
 /**
  * Records a lock the user just placed via a real on-chain order (see exchange.ts#lockPosition).

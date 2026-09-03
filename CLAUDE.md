@@ -70,8 +70,11 @@ pnpm test
 pnpm build
 ```
 All four are wired into `.github/workflows/ci.yml` as separate jobs on every
-push and PR — keep it that way; a CI that only runs the backend test suite
-is not testing the app that ships it.
+push and PR — keep it that way; a CI that only runs part of the app's test
+suite is not testing the app that ships it. SOMNIX is one Next.js app
+(frontend + `app/api/*` route handlers) — there is no separate backend
+service; don't reintroduce one without a real reason (see `docs/API_NOTES.md`
+§0 for why it was folded in).
 
 ## Durable docs
 - `docs/API_NOTES.md` — measured behavior of every external API this repo

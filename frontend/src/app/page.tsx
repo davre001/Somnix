@@ -123,7 +123,6 @@ export default function HomePage() {
             <LiveCryptoChart
               pair={selectedPair}
               length={selectedLength}
-              height={280}
             />
 
             {/* Odds Indicator Bar with 70% threshold warning */}

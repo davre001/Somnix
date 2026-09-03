@@ -4,12 +4,10 @@
   "private": true,
   "packageManager": "pnpm@11.21.0",
   "scripts": {
-    "dev": "pnpm --parallel --filter frontend --filter somnix-backend dev",
-    "dev:frontend": "pnpm --filter frontend dev",
-    "dev:backend": "pnpm --filter somnix-backend dev",
-    "build": "pnpm --filter somnix-backend build && pnpm --filter frontend build",
-    "lint": "pnpm --filter somnix-backend lint && pnpm --filter frontend lint",
-    "typecheck": "pnpm --filter somnix-backend typecheck && pnpm --filter frontend typecheck",
-    "test": "pnpm --filter somnix-backend test && pnpm --filter frontend test"
+    "dev": "pnpm --filter frontend dev",
+    "build": "pnpm --filter frontend build",
+    "lint": "pnpm --filter frontend lint",
+    "typecheck": "pnpm --filter frontend typecheck",
+    "test": "pnpm --filter frontend test"
   }
 }

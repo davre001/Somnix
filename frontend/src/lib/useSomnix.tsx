@@ -10,6 +10,7 @@ import {
   UserLock,
   RecentWindow,
   WalletState,
+  PendingLockIntent,
 } from './types';
 import {
   getMarketWindow,
@@ -22,10 +23,10 @@ import {
   addRecentWindow,
   getCurrentWindowBounds,
   loadPendingLockIntent,
-  savePendingLockIntent,
   clearPendingLockIntent,
 } from './marketService';
 import { fetchCollateralBalance, fetchCollateralMeta, somniaTestnet, SOMNIA_CONFIG } from './somnia';
+import { reportLock, reportClaim } from './history';
 import {
   bindExchangeSigner,
   describeExchangeError,
@@ -37,7 +38,6 @@ import {
   requestFaucet,
   checkFilledAmount,
   reconcileOutcome,
-  isAmbiguousTxError,
 } from './exchange';
 
 interface ClaimResult {
@@ -236,7 +236,8 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
     if (!pending) return;
     checkFilledAmount(pending.marketId, pending.side)
       .then((filled) => {
-        if (filled > 0) {
+        const outcome = reconcileOutcome(pending, filled);
+        if (outcome === 'recovered') {
           const base = getMarketWindow(pending.pair, pending.length);
           const recovered = createLock(
             { ...base, id: pending.marketId },
@@ -246,8 +247,11 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
             pending.id
           );
           setActiveLock(recovered);
+          clearPendingLockIntent();
+        } else if (outcome === 'discarded') {
+          clearPendingLockIntent();
         }
-        clearPendingLockIntent();
+        // 'pending': too recent to be conclusive — leave it, retry next signer bind.
       })
       .catch((err) => {
         console.warn('[Somnix] Could not reconcile a pending lock yet — will retry:', err);
@@ -513,8 +517,10 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
       // Persisted BEFORE the wallet prompt: if the tab closes between the wallet
       // confirming and the order resolving below, reconcilePendingLock recovers
       // the real fill from chain instead of the app silently losing track of it.
+      // lockWithIntent owns the save/clear-on-provable-failure protocol; see
+      // exchange.ts and __tests__/exchange.test.ts for the ordering guarantee.
       const idempotencyKey = `lock-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      savePendingLockIntent({
+      const intent: PendingLockIntent = {
         id: idempotencyKey,
         marketId: market.id,
         pair: selectedPair,
@@ -522,28 +528,22 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
         side,
         amount: selectedAmount,
         createdAt: Date.now(),
-      });
+      };
 
       let order;
       try {
-        order = await lockPosition(market, side, selectedAmount);
+        order = await lockWithIntent(intent, () => lockPosition(market, side, selectedAmount));
       } catch (err: unknown) {
-        // Only discard the intent when we're SURE nothing was sent — an ambiguous
-        // failure (timeout, dropped connection) stays pending for reconciliation.
-        const ambiguous = isAmbiguousTxError(err);
-        if (!ambiguous) clearPendingLockIntent();
         console.error('[Somnia Lock Error]', {
           timestamp: new Date().toISOString(),
           idempotencyKey,
           marketId: market.id,
           side,
           amount: selectedAmount,
-          ambiguous,
           error: err instanceof Error ? err.message : String(err),
         });
         throw err;
       }
-      clearPendingLockIntent();
 
       // Use the freshly-fetched market's own id + real on-chain expiry — currentMarket's
       // id/endTime come from the app's synthetic clock-aligned window and can drift.
@@ -568,6 +568,33 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
         return updated;
       });
       if (wallet.address) refreshBalance(wallet.address);
+
+      // Best-effort history mirror — the lock already happened on-chain regardless
+      // of whether this succeeds; never awaited into the user-facing flow. Once
+      // the backend assigns its own id, attach it to the active lock so a later
+      // claim can reference it.
+      if (newLock.txHash) {
+        reportLock({
+          marketId: newLock.marketId,
+          pair: newLock.pair,
+          length: newLock.length,
+          side: newLock.side,
+          amount: newLock.amount,
+          filledAmount: newLock.payout,
+          fillPrice: newLock.price,
+          walletAddress: wallet.address,
+          hidePriceUntil: newLock.hidePriceUntil,
+          txHash: newLock.txHash,
+        }).then((backendLockId) => {
+          if (!backendLockId) return;
+          setActiveLock((current) => {
+            if (!current || current.id !== newLock.id) return current;
+            const withBackendId = { ...current, backendLockId };
+            saveActiveLock(withBackendId);
+            return withBackendId;
+          });
+        });
+      }
 
       return newLock;
     },
@@ -611,6 +638,18 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
         });
         setRecents(getRecentWindows());
         if (wallet.address) refreshBalance(wallet.address);
+
+        // Best-effort history mirror — only meaningful if the lock itself was
+        // successfully reported earlier (see executeLock); nothing to attach
+        // a claim to on the backend otherwise.
+        if (lock.backendLockId) {
+          void reportClaim({
+            lockId: lock.backendLockId,
+            walletAddress: wallet.address,
+            filledAmount: lock.payout,
+            txHash: redeemed.hash,
+          });
+        }
 
         return { success: true, txHash: redeemed.hash };
       } catch (err: unknown) {

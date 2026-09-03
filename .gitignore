@@ -8,4 +8,9 @@ dist/
 npm-debug.log*
 *.tsbuildinfo
 .claude/
-somnix.db
+# Local Turso/libSQL fallback db (see frontend/src/lib/server/tursoStore.ts) —
+# only used when TURSO_DATABASE_URL isn't set; real deploys use hosted Turso.
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

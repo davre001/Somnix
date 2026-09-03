@@ -78,12 +78,14 @@ describe('fetchLiveMarkets backend matching', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        success: true,
-        markets: [
-          { id: '0xrealmarketid', marketType: 'BINARY', asset: 'BTC', interval: '15m' },
-          { id: '0xwrongwindow', marketType: 'BINARY', asset: 'BTC', interval: '1h' },
-          { id: '0xotherid', marketType: 'BINARY', asset: 'ETH', interval: '15m' },
-        ],
+        ok: true,
+        data: {
+          markets: [
+            { id: '0xrealmarketid', marketType: 'BINARY', asset: 'BTC', interval: '15m' },
+            { id: '0xwrongwindow', marketType: 'BINARY', asset: 'BTC', interval: '1h' },
+            { id: '0xotherid', marketType: 'BINARY', asset: 'ETH', interval: '15m' },
+          ],
+        },
       }),
     }));
 
@@ -96,8 +98,8 @@ describe('fetchLiveMarkets backend matching', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        success: true,
-        markets: [{ id: '0xwrongwindow', asset: 'BTC', interval: '1h' }],
+        ok: true,
+        data: { markets: [{ id: '0xwrongwindow', asset: 'BTC', interval: '1h' }] },
       }),
     }));
 

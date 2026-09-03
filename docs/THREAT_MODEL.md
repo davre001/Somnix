@@ -8,27 +8,33 @@ This document outlines the trust boundaries, threat vectors, security guarantees
 
 ```
 [ User Browser (Wallet + SOMNIX UI) ]
-       │                                │
-       │ Signed txs (lock/claim/faucet) │ Display-only reads (pre-connect / watch mode)
-       ▼                                ▼
-[ Somnia Testnet RPC ]           [ SOMNIX Backend Proxy (port 4000) ]
-[ DreamDEX contracts             │
-  (binaryModule, settlement,     ▼
-   collateral ERC-20) ]     [ DreamDEX Hasura Indexer ]
-       ▲
-       │ Direct indexer + chain reads/writes
+       │                                │                          │
+       │ Signed txs (lock/claim/faucet) │ Display-only reads       │ POST /api/lock, /api/claim
+       ▼                                │ (pre-connect/watch mode) │ (AFTER a real tx confirms)
+[ Somnia Testnet RPC ]                  ▼                          ▼
+[ DreamDEX contracts             [ SOMNIX Next.js app/api/* (same origin, serverless) ]────┘
+  (binaryModule, settlement,     │        │
+   collateral ERC-20) ]          │        └─ verifyOnChainTx() reads the same
+       ▲                        ▼            Somnia RPC to confirm the reported
+       │ Direct indexer +  [ Turso/libSQL (locks/claims) ]  txHash is real, mined, and
+       │ chain reads/writes                                  sent by the reported wallet
        │ (loadMarkets, createOrder, redeem, faucet, getResolution)
-       └────────────────────────────────┘
+       │                        [ DreamDEX Hasura Indexer ]
+       └──────────────────────────────┘
 ```
 
 The frontend holds its **own** `@somnia-chain/markets-sdk` exchange instance
-(`frontend/src/lib/exchange.ts`) that talks to the DreamDEX indexer and the
-Somnia RPC directly — it does not proxy trades through the backend. It has
-to: placing an order or redeeming a position requires a signature from the
-user's own wallet, which only exists in the browser. The backend proxy is
-used only for lightweight, unauthenticated, display-only reads (market list
-/ odds preview before a wallet is connected, or in Watch Mode) and the
-share-card image renderer.
+(`lib/exchange.ts`) that talks to the DreamDEX indexer and the Somnia RPC
+directly — it does not proxy trades through the server. It has to: placing
+an order or redeeming a position requires a signature from the user's own
+wallet, which only exists in the browser. SOMNIX is a single Next.js app —
+its own `app/api/*` route handlers (not a separate service) are used for:
+lightweight, unauthenticated, display-only reads (market list / odds preview
+before a wallet is connected, or in Watch Mode); the share-card image
+renderer; and — after a lock or claim already succeeded on-chain — a
+best-effort history mirror (`lib/history.ts` → `POST /api/lock` /
+`/api/claim`) that the frontend never waits on or branches its own state on.
+See `docs/API_NOTES.md` §0 for why this isn't a separate backend service.
 
 ### Trusted Components
 1. **User's Wallet**: MetaMask, Coinbase, Rainbow, OKX, Phantom, or an
@@ -41,12 +47,22 @@ share-card image renderer.
    never hardcoded by SOMNIX).
 
 ### Untrusted Components
-1. **Backend Server (`backend/`)**: Never sees a private key, a signature, or
-   a user balance, and has no execution rights. It's a read cache/proxy for
-   pre-trade display and an OG image renderer — nothing it returns is used to
-   construct or authorize a transaction; `exchange.ts` re-resolves the real
-   live market and the real order book directly against the indexer/chain
-   right before signing.
+1. **The app's own server routes (`app/api/*`)**: Never see a private key or
+   a signature, and have no execution rights over the user's funds — they
+   cannot lock, claim, or move anything. Two roles, both non-authoritative:
+   - **Pre-trade display proxy** (`app/api/markets/*`): nothing it returns is
+     used to construct or authorize a transaction; `exchange.ts` re-resolves
+     the real live market and the real order book directly against the
+     indexer/chain right before signing.
+   - **Post-trade history mirror** (`app/api/lock/*`, `app/api/claim/*`,
+     backed by Turso): accepts a report only after the frontend already has a
+     confirmed on-chain result, and only after `verifyOnChainTx`
+     (`lib/server/chainVerify.ts`) confirms the reported `txHash` is a real,
+     mined, successful transaction sent by the reported wallet. This does
+     **not** prove the exact `filledAmount`/`fillPrice` claimed alongside it
+     — see Threat 7. The frontend never reads this store back to decide
+     anything about a user's own position (that's always a live chain read);
+     it exists for cross-device/shareable history only.
 2. **External Indexer Latency**: The Hasura indexer can lag the chain. Any
    value that gates a signed action (which market is live, whether it
    resolved, what the wallet's real outcome-token balance is) is re-read
@@ -56,18 +72,19 @@ share-card image renderer.
 
 ## 2. Threat Analysis & Mitigations
 
-### Threat 1: Malicious or Compromised Backend Proxy
-- **Risk**: Backend modifies market responses or injects a malicious contract
-  address to trick a user into signing something harmful.
+### Threat 1: Malicious or Compromised Display Proxy
+- **Risk**: The `app/api/markets/*` proxy returns a tampered market response
+  or injects a malicious contract address to trick a user into signing
+  something harmful.
 - **Mitigation**:
   - Contract addresses are the SDK's own `SOMNIA_TESTNET_ADDRESSES` constants,
-    bundled into the client — the backend never supplies an address used in a
-    transaction.
+    bundled into the client — the server route never supplies an address used
+    in a transaction.
   - Every transaction (`lockPosition`, `claimWinnings`, `requestFaucet`) is
     constructed and signed entirely client-side via the SDK + the user's
-    `viem` `walletClient`. The backend is never in that path.
+    `viem` `walletClient`. The server is never in that path.
   - The market/side actually traded comes from `findLiveMarket`, a fresh
-    direct indexer read at lock time — not the backend's polled display data.
+    direct indexer read at lock time — not the proxy's polled display data.
 
 ### Threat 2: A signed order or claim vanishes from the app's own record
 - **Risk**: The tab closes, or the network drops, between the wallet
@@ -133,6 +150,21 @@ share-card image renderer.
   hold the winning outcome tokens on-chain — the share payload is never read
   by any signing or claim path.
 
+### Threat 7: Fabricated backend history
+- **Risk**: A client POSTs a `filledAmount`/`fillPrice` to `/api/lock` (or
+  `/api/claim`) that doesn't match what the referenced `txHash` actually did
+  on-chain — inflating their own recorded history.
+- **Mitigation**: Bounded, not eliminated. `verifyOnChainTx` proves the
+  `txHash` is real, mined, successful, and sent by the claimed wallet — it
+  does **not** re-derive the exact fill amount/price from the transaction's
+  logs (that would mean re-implementing the CLOB's order-matching decode
+  server-side for a store that authorizes nothing and holds no funds — see
+  `docs/LIMITATIONS.md`). The blast radius of a spoofed number here is a
+  wrong entry in a non-authoritative history mirror, never a fund-moving
+  action: claiming still requires the real on-chain redeem call, which
+  reverts on-chain for a non-winning or already-claimed position regardless
+  of what SOMNIX's own Turso store says.
+
 ---
 
 ## 3. Not defended, be explicit
@@ -142,10 +174,13 @@ share-card image renderer.
   protocol's own contracts and oracle as given; it has no independent
   verification of settlement correctness beyond reading the contract's own
   state.
-- **No rate limiting or abuse protection on the backend proxy.** It's a
-  read-only cache with no execution rights, so the blast radius of abuse is
-  "wasted indexer requests," not fund loss — but it isn't hardened against
-  being hammered.
+- **No rate limiting or abuse protection on the server routes.** Neither the
+  display proxy nor `/api/lock`/`/api/claim` are rate-limited. The blast
+  radius stays bounded (wasted indexer/RPC requests, or junk rows in a
+  non-authoritative history table — see Threat 7), but it isn't hardened
+  against being hammered.
+- **No exact-fill verification on reported history** (Threat 7) — a
+  deliberate scope line, not an oversight; see that threat's mitigation.
 - **No formal review of the wiring in `exchange.ts`/`useSomnix.tsx` has been
   performed** (contract-call construction, error-message content, the
   reconciliation logic above) — see `docs/LIMITATIONS.md` for what's been
@@ -161,3 +196,7 @@ share-card image renderer.
    against real observed book depth/volatility.
 3. The full trading path has not been exercised against a live wallet and a
    live order book as of this writing (see `docs/LIMITATIONS.md` §1).
+4. The backend history mirror (Threat 7) trusts the client's reported
+   `filledAmount`/`fillPrice` once the `txHash` checks out — a compromised or
+   modified frontend build could still write plausible-looking but wrong
+   numbers into someone's own history.

@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 interface LiveCryptoChartProps {
   pair: WindowPair;
   length?: WindowLength;
-  height?: number | string;
   className?: string;
   title?: string;
 }
@@ -15,7 +14,6 @@ interface LiveCryptoChartProps {
 export function LiveCryptoChart({
   pair,
   length = '15m',
-  height = 460,
   className = '',
   title,
 }: LiveCryptoChartProps) {

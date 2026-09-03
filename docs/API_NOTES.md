@@ -1,17 +1,40 @@
 # API Notes: DreamDEX & Somnia Integration
 
 Measured/documented behavior of every external dependency SOMNIX's execution
-path relies on. Two separate access paths exist — keep them distinct, they
-have different trust levels (see `docs/THREAT_MODEL.md` §1):
+path relies on.
 
-- **Backend proxy** (`backend/src/routes/markets.ts`, `backend/src/lib/dreamdex.ts`):
+## 0. One app, not two
+
+SOMNIX is a single Next.js app — no separate Express service. There was one
+(`backend/`, Express + SQLite on Render) up through an earlier iteration; it
+was folded into this app's own `app/api/*` route handlers because every
+route it served was stateless request/response (no long-lived connections,
+no background jobs), which is exactly what serverless functions are for, and
+running it separately bought nothing but a second deploy target, a second
+CI job, and — on Render's free tier — a 15-minute-idle cold start with no
+equivalent problem on serverless hosting. The database moved from a local
+SQLite file (which doesn't survive a serverless cold start, and didn't
+survive a Render free-tier sleep either) to Turso (`@libsql/client`), which
+is SQLite-compatible over HTTP specifically so a stateless function still has
+somewhere durable to write.
+
+Three separate access paths exist inside the one app — keep them distinct,
+they have different trust levels (see `docs/THREAT_MODEL.md` §1):
+
+- **Server display proxy** (`app/api/markets/*`, `lib/server/dreamdex.ts`):
   unauthenticated, read-only, used for pre-trade display (market list, odds
   preview) before a wallet is connected or in Watch Mode. Never touches a
   signature or a transaction.
-- **Frontend SDK client** (`frontend/src/lib/exchange.ts`): a `SomniaMarkets`
-  instance bound to the user's own `viem` `walletClient`. Everything that
-  moves money — locking, claiming, the faucet, resolution checks — goes
-  through this, talking directly to the DreamDEX indexer and the Somnia RPC.
+- **Browser SDK client** (`lib/exchange.ts`): a `SomniaMarkets` instance
+  bound to the user's own `viem` `walletClient`. Everything that moves
+  money — locking, claiming, the faucet, resolution checks — goes through
+  this, talking directly to the DreamDEX indexer and the Somnia RPC from the
+  browser. This is the one piece that can never move server-side: it needs a
+  signature only the user's own wallet can produce.
+- **Server history mirror** (`app/api/lock/*`, `app/api/claim/*`,
+  Turso-backed; posted to from `lib/history.ts`): receives a report only
+  *after* the browser already has a confirmed on-chain result. Never
+  authorizes or gates anything — see §5.
 
 ---
 
@@ -30,7 +53,7 @@ have different trust levels (see `docs/THREAT_MODEL.md` §1):
 | Aspect | Guarantee |
 | :--- | :--- |
 | **Response type** | Read-only snapshot; may lag the chain by 1–3 blocks. |
-| **Backend cache policy** | 5,000 ms TTL server-side cache (`backend/src/lib/dreamdex.ts`) — display-only, never consulted before signing. |
+| **Server cache policy** | 5,000 ms TTL server-side cache (`lib/server/dreamdex.ts`) — display-only, never consulted before signing. |
 | **Frontend freshness** | `findLiveMarket` calls `loadMarkets()` fresh immediately before every lock — no cached/stale market id is ever signed against. |
 | **BinaryMarket field shape** | `asset` (e.g. `"BTC"`), `interval` (e.g. `"15m"`, SDK-derived from on-chain `intervalSec`/`expiry - tradingStart`), `id` (the real `marketId`) — **not** `name`/`symbol`/`strikePrice`, which don't exist on the type. Match on `asset` + `interval` together, not `asset` alone (a market can exist on multiple cadences). |
 
@@ -75,21 +98,29 @@ see `exchange.ts#isAmbiguousTxError` and `docs/THREAT_MODEL.md` Threat 2:
 
 ## 3. Idempotency & Reconciliation
 
-- **Key generated and persisted before broadcast, not after.** `executeLock`
-  builds an idempotency key and calls `marketService.ts#savePendingLockIntent`
-  — writing `{ id, marketId, pair, length, side, amount, createdAt }` to
-  `localStorage` — *before* `lockPosition` (which triggers the wallet prompt),
-  not after the order resolves. This is the fix for the failure mode the
-  reliability skill calls out explicitly: generating the key only after a
-  response comes back leaves nothing to check against if the request itself
-  times out.
+- **Key generated and persisted before broadcast, not after.**
+  `exchange.ts#lockWithIntent` (called from `useSomnix.tsx#executeLock`)
+  calls `marketService.ts#savePendingLockIntent` — writing
+  `{ id, marketId, pair, length, side, amount, createdAt }` to `localStorage`
+  — *before* `lockPosition` (which triggers the wallet prompt), not after the
+  order resolves. This is the fix for the failure mode the reliability skill
+  calls out explicitly: generating the key only after a response comes back
+  leaves nothing to check against if the request itself times out. It only
+  clears the intent when `isAmbiguousTxError` says the SDK proved nothing was
+  sent — an ambiguous failure leaves it in place. See
+  `__tests__/exchange.test.ts` for the guard's own regression test.
 - **Reconciliation, not just persistence.** A persisted intent alone doesn't
   help unless something later checks it against reality.
   `useSomnix.tsx#reconcilePendingLock` runs whenever a signer (re)binds —
   fresh connect, or reload rehydration — and calls
   `exchange.ts#checkFilledAmount(marketId, side)`, a direct on-chain read of
-  the wallet's outcome-token balance for that market, to decide whether to
-  promote the intent into a real recorded lock or discard it.
+  the wallet's outcome-token balance for that market. `exchange.ts#reconcileOutcome`
+  turns that into one of three verdicts: `'recovered'` (balance > 0 — promote
+  the intent into a real recorded lock), `'discarded'` (balance is 0 *and*
+  the intent is older than a 30s grace period — a fresh broadcast might
+  simply not have mined yet, so a same-block zero-balance read is not treated
+  as proof of failure), or `'pending'` (too recent to be conclusive — left
+  alone, retried next signer bind).
 - **Single lock per window**: `lockValidation` rejects a second lock once
   `activeLock.marketId` matches the current window's market id.
 - **Budget guardrail**: `wallet.dailyBudgetSpent`, tracked in
@@ -119,3 +150,39 @@ returning a client-facing message (see `useSomnix.tsx#executeLock` /
 `describeExchangeError` (`exchange.ts`) is what turns the underlying SDK
 error into the client-facing message shown in the UI — the structured log
 above always carries the raw `error.message`, not the friendlier string.
+
+---
+
+## 5. Backend History Mirror (`POST /api/lock`, `POST /api/claim`)
+
+**Feed order, always**: real on-chain confirmation → frontend calls
+`history.ts#reportLock`/`reportClaim` → backend verifies → SQLite. Never the
+reverse — the frontend never waits on or branches its own state on this
+store; a failure here is logged and swallowed (`history.ts`), because the
+on-chain result is already final either way.
+
+| Endpoint | Requires | Server-side check | On failure |
+| :--- | :--- | :--- | :--- |
+| `POST /api/lock` | `marketId, pair, length, side, amount, filledAmount, fillPrice, hidePriceUntil, txHash` (all real, post-fill values — see `useSomnix.tsx#executeLock`) | `chainVerify.ts#verifyOnChainTx(txHash, walletAddress)`: well-formed hash, receipt exists, `status === "success"`, `receipt.from === walletAddress` | `422` with the specific reason; frontend just logs a warning |
+| `POST /api/claim` | `lockId` (the backend's own id from the `/api/lock` response — `UserLock.backendLockId`, not the frontend's local lock id), `filledAmount`, `txHash` | Same `verifyOnChainTx` check, plus the referenced lock must exist (`404` if not) | Same as above; also silently skipped client-side if `backendLockId` was never captured (the earlier lock report failed or hasn't resolved yet) |
+
+**What `verifyOnChainTx` does NOT do**: decode the transaction's logs to
+confirm the exact `filledAmount`/`fillPrice` match what actually filled. That
+would mean re-implementing the CLOB's order-matching/decode logic
+server-side, for a store that authorizes nothing and holds no funds. See
+`docs/THREAT_MODEL.md` Threat 7 for the accepted blast radius.
+
+**Claim idempotency**: `POST /api/claim` is safe to retry — if a claim
+already exists for `lockId`, the existing record is returned as-is (`200`)
+rather than erroring or creating a duplicate.
+
+**Schema**: Turso (libSQL) via `@libsql/client`, configured with
+`TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN`; falls back to a local gitignored
+`file:local.db` when unset (dev only — doesn't survive a serverless cold
+start, see `docs/LIMITATIONS.md` §6). Schema is versioned via `PRAGMA
+user_version` (`lib/server/tursoStore.ts`); a version bump runs a destructive
+`DROP TABLE` + recreate — acceptable only because this is local dev/testnet
+state with nothing worth migrating, not a real production migration path.
+The `length` column is named `windowLength` in SQL specifically to avoid
+colliding with the libSQL `Row` object's own array-like `.length` property
+(a real bug this caught — see `docs/LIMITATIONS.md` §6).
