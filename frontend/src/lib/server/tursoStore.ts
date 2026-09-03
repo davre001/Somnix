@@ -29,8 +29,20 @@ async function ensureSchema(): Promise<void> {
   if (!initPromise) {
     initPromise = (async () => {
       const db = getClient();
-      const versionResult = await db.execute('PRAGMA user_version');
-      const databaseVersion = Number((versionResult.rows[0] as { user_version?: number } | undefined)?.user_version ?? 0);
+      // NOT `PRAGMA user_version` — Turso's remote HTTP protocol rejects it
+      // outright (`SQL_PARSE_ERROR: SQL not allowed statement`). Only found by
+      // hitting a real deployed Turso database; the local `:memory:`/`file:`
+      // mode used in tests runs the real SQLite engine directly and allows any
+      // PRAGMA, so this gap is invisible to `tursoStore.test.ts`. A plain table
+      // is fully supported over both.
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS schema_meta (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          version INTEGER NOT NULL
+        )
+      `);
+      const versionResult = await db.execute('SELECT version FROM schema_meta WHERE id = 1');
+      const databaseVersion = Number((versionResult.rows[0] as { version?: number } | undefined)?.version ?? 0);
 
       if (databaseVersion > currentSchemaVersion) {
         throw new Error(`Turso schema version ${databaseVersion} is newer than supported version ${currentSchemaVersion}`);
@@ -77,7 +89,13 @@ async function ensureSchema(): Promise<void> {
         )
       `);
 
-      await db.execute(`PRAGMA user_version = ${currentSchemaVersion}`);
+      await db.execute({
+        sql: `
+          INSERT INTO schema_meta (id, version) VALUES (1, ?)
+          ON CONFLICT(id) DO UPDATE SET version = excluded.version
+        `,
+        args: [currentSchemaVersion],
+      });
     })();
   }
   return initPromise;
