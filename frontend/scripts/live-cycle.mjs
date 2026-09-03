@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { SomniaMarkets, SOMNIA_TESTNET_ADDRESSES, InvalidInputError } from '@somnia-chain/markets-sdk';
+import { SomniaMarkets, SOMNIA_TESTNET_ADDRESSES, InvalidInputError, isBinaryMarket, fromHuman } from '@somnia-chain/markets-sdk';
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -112,7 +112,7 @@ async function doClaim() {
   console.log('Checking resolution for market', state.marketId, '...');
 
   const market = await exchange.client.getMarket(state.marketId);
-  if (!market || market.marketType !== 'BINARY') {
+  if (!market || !isBinaryMarket(market)) {
     throw new Error('Could not read market resolution from indexer.');
   }
   if (market.winningOutcome == null && !market.voided) {
@@ -128,9 +128,18 @@ async function doClaim() {
     return;
   }
 
+  // Deliberately not exchange.redeem(ref, amount) — that resolves `ref` through
+  // the SDK's live-markets registry, which excludes finalized (resolved)
+  // binary markets by design. A market is only claimable after it resolves,
+  // so the registry never has it by claim time. Go around it: raw
+  // module-routed trader.redeem() using the market read directly by id above.
   console.log(`Claiming ${state.amount}...`);
-  await exchange.loadMarkets();
-  const res = await exchange.redeem(state.marketId, state.amount);
+  const res = await exchange.trader.redeem({
+    marketId: market.marketId,
+    market: market.marketAddress,
+    outcomeIdx: market.winningOutcome == null ? undefined : market.winningOutcome,
+    amount: fromHuman(state.amount, market.baseDecimals),
+  });
   console.log('CLAIMED:', res.hash);
 }
 

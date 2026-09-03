@@ -10,6 +10,8 @@ import {
   IndexerError,
   RpcError,
   NotConfiguredError,
+  isBinaryMarket,
+  fromHuman,
   type UnifiedMarket,
 } from '@somnia-chain/markets-sdk';
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains';
@@ -198,15 +200,38 @@ export async function getResolution(marketId: string): Promise<MarketResolution>
   return { resolved: true, voided: false, winningSide: market.winningOutcome === 0 ? 'green' : 'red', endPrice };
 }
 
-/** Redeems `amount` of the winning outcome token on `marketId` for collateral. */
+/**
+ * Redeems `amount` of the winning outcome token on `marketId` for collateral.
+ *
+ * Deliberately does NOT use the SDK's `exchange.redeem(ref, amount)` convenience
+ * method: that resolves `ref` through the exchange's live-markets registry
+ * (populated by `loadMarkets()`), and per the SDK's own source, that registry
+ * sweep excludes finalized (resolved) binary markets by design — "Finalized
+ * series accumulate without bound and would swamp the symbol registry ... resolve
+ * those by pool via the raw-tier lookups instead." A market only becomes
+ * claimable AFTER it resolves, so by the time this runs the registry has almost
+ * always already dropped it. Confirmed against a real testnet claim: it threw
+ * "unknown market ref ... call loadMarkets() first" even immediately after
+ * calling loadMarkets(). Instead: read the market directly by id (a plain
+ * indexer primary-key lookup — works regardless of finalized status) and call
+ * the raw, module-routed `trader.redeem()`, which only needs the market's
+ * on-chain address and winning outcome, not the registry.
+ */
 export async function claimWinnings(marketId: string, amount: number): Promise<{ hash: string }> {
   const ex = getExchange();
-  // redeem() looks the market up in the SDK's local cache, populated only by
-  // loadMarkets() — on a fresh page load (no prior lock/findLiveMarket call in
-  // this session) that cache is empty and redeem() throws "unknown market ref
-  // ... call loadMarkets() first" instead of actually claiming.
-  await ex.loadMarkets();
-  const res = await ex.redeem(marketId, amount);
+  const market = await ex.client.getMarket(marketId);
+  if (!market || !isBinaryMarket(market)) {
+    throw new InvalidInputError(`Unknown or non-binary market: ${marketId}`);
+  }
+  if (market.winningOutcome == null && !market.voided) {
+    throw new InvalidInputError('Market has not resolved on-chain yet');
+  }
+  const res = await ex.trader.redeem({
+    marketId: market.marketId,
+    market: market.marketAddress,
+    outcomeIdx: market.winningOutcome == null ? undefined : (market.winningOutcome as 0 | 1),
+    amount: fromHuman(amount, market.baseDecimals),
+  });
   return { hash: res.hash };
 }
 
