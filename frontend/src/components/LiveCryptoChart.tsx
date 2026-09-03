@@ -1,8 +1,66 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { WindowPair, WindowLength } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+interface TradingViewChartApi {
+  setSymbol(symbol: string, callback?: () => void): void;
+  setResolution(resolution: string, callback?: () => void): void;
+}
+
+interface TradingViewWidgetInstance {
+  onChartReady(callback: () => void): void;
+  chart(): TradingViewChartApi;
+  remove(): void;
+}
+
+interface TradingViewWidgetOptions {
+  container_id: string;
+  autosize?: boolean;
+  symbol: string;
+  interval: string;
+  timezone?: string;
+  theme?: string;
+  style?: string;
+  locale?: string;
+  toolbar_bg?: string;
+  hide_side_toolbar?: boolean;
+  hide_top_toolbar?: boolean;
+  allow_symbol_change?: boolean;
+  save_image?: boolean;
+  hide_volume?: boolean;
+  hideideas?: boolean;
+}
+
+declare global {
+  interface Window {
+    TradingView?: {
+      widget: new (options: TradingViewWidgetOptions) => TradingViewWidgetInstance;
+    };
+  }
+}
+
+let tvScriptPromise: Promise<void> | null = null;
+
+/** Loads TradingView's embeddable widget script once and reuses it across every chart instance. */
+function loadTradingViewScript(): Promise<void> {
+  if (window.TradingView) return Promise.resolve();
+  if (!tvScriptPromise) {
+    tvScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/tv.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => {
+        tvScriptPromise = null;
+        reject(new Error('Failed to load TradingView widget script'));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return tvScriptPromise;
+}
 
 interface LiveCryptoChartProps {
   pair: WindowPair;
@@ -18,8 +76,11 @@ export function LiveCryptoChart({
   title,
 }: LiveCryptoChartProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const widgetRef = useRef<TradingViewWidgetInstance | null>(null);
+  const isFirstUpdate = useRef(true);
+  const reactId = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const containerId = `tv-chart-${reactId}`;
 
-  // Map length to TradingView interval string
   const getIntervalString = (len: WindowLength): string => {
     switch (len) {
       case '1m':
@@ -40,9 +101,64 @@ export function LiveCryptoChart({
   const symbol = pair === 'BTC' ? 'BINANCE:BTCUSDT' : 'BINANCE:ETHUSDT';
   const interval = getIntervalString(length);
 
-  const iframeSrc = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${encodeURIComponent(
-    symbol
-  )}&interval=${interval}&hidesidetoolbar=1&hidetoptoolbar=1&symboledit=0&saveimage=0&toolbarbg=07070a&theme=dark&style=1&timezone=Etc%2FUTC&locale=en&hideideas=1&hidevolume=1`;
+  // Create the widget exactly once per mount.
+  useEffect(() => {
+    let cancelled = false;
+
+    loadTradingViewScript()
+      .then(() => {
+        if (cancelled || !window.TradingView) return;
+        const widget = new window.TradingView.widget({
+          container_id: containerId,
+          autosize: true,
+          symbol,
+          interval,
+          timezone: 'Etc/UTC',
+          theme: 'dark',
+          style: '1',
+          locale: 'en',
+          toolbar_bg: '#07070a',
+          hide_side_toolbar: true,
+          hide_top_toolbar: true,
+          allow_symbol_change: false,
+          save_image: false,
+          hide_volume: true,
+          hideideas: true,
+        });
+        widgetRef.current = widget;
+        widget.onChartReady(() => {
+          if (!cancelled) setIsLoading(false);
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      widgetRef.current?.remove();
+      widgetRef.current = null;
+    };
+    // Intentionally runs once — pair/length switches update the existing widget in
+    // place (see below) instead of tearing down and reloading the whole iframe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [containerId]);
+
+  // Update the live widget in place when pair/length changes, instead of remounting it.
+  useEffect(() => {
+    if (isFirstUpdate.current) {
+      isFirstUpdate.current = false;
+      return;
+    }
+    const widget = widgetRef.current;
+    if (!widget) return;
+    widget.onChartReady(() => {
+      const chart = widget.chart();
+      chart.setSymbol(symbol, () => {
+        chart.setResolution(interval);
+      });
+    });
+  }, [symbol, interval]);
 
   return (
     <div
@@ -78,15 +194,7 @@ export function LiveCryptoChart({
           </div>
         )}
 
-        <iframe
-          key={`${symbol}-${interval}`}
-          src={iframeSrc}
-          className="w-full h-full border-0"
-          title={`TradingView Chart ${pair}`}
-          allowTransparency
-          scrolling="no"
-          onLoad={() => setIsLoading(false)}
-        />
+        <div id={containerId} className="w-full h-full" />
       </div>
     </div>
   );

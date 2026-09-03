@@ -15,6 +15,7 @@ import {
 import {
   getMarketWindow,
   fetchLiveMarkets,
+  fetchLiveLengths,
   fetchLiveOdds,
   loadActiveLock,
   saveActiveLock,
@@ -69,6 +70,7 @@ interface SomnixContextType {
   setSelectedLength: (l: WindowLength) => void;
   selectedAmount: number;
   setSelectedAmount: (a: number) => void;
+  liveLengths: WindowLength[] | null;
 
   currentMarket: MarketWindow;
   activeLock: UserLock | null;
@@ -217,6 +219,9 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
     return Math.floor(remainingMs / 1000);
   });
   const [marketOverride, setMarketOverride] = useState<Partial<MarketWindow> | null>(null);
+  // null = not checked yet (don't disable anything while loading, to avoid a flash of
+  // every length looking dead before the first fetch lands).
+  const [liveLengths, setLiveLengths] = useState<WindowLength[] | null>(null);
 
   const refreshBalance = useCallback((address: string) => {
     fetchCollateralBalance(address).then((realBalance) => {
@@ -326,6 +331,23 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
       clearInterval(interval);
     };
   }, [selectedPair, selectedLength]);
+
+  // Which lengths have a real live DreamDEX market for the selected pair — lets the
+  // length selector disable one (e.g. a cadence DreamDEX doesn't currently run) instead
+  // of letting someone pick a window that can never go live.
+  useEffect(() => {
+    let isCancelled = false;
+    async function loadLiveLengths() {
+      const lens = await fetchLiveLengths(selectedPair);
+      if (!isCancelled) setLiveLengths(lens);
+    }
+    loadLiveLengths();
+    const interval = setInterval(loadLiveLengths, 10000);
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
+  }, [selectedPair]);
 
   // Current market window
   const currentMarket = useMemo(() => {
@@ -703,6 +725,7 @@ export function SomnixProvider({ children }: { children: React.ReactNode }) {
         setSelectedLength,
         selectedAmount,
         setSelectedAmount,
+        liveLengths,
         currentMarket,
         activeLock,
         recents,

@@ -32,6 +32,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sourceCodePro.variable} dark antialiased`}>
+      <head>
+        {/* Speeds up the first TradingView widget load (lib/components/LiveCryptoChart.tsx) */}
+        <link rel="preconnect" href="https://s3.tradingview.com" />
+        <link rel="dns-prefetch" href="https://s3.tradingview.com" />
+      </head>
       <body className="min-h-screen w-full bg-[#050507] text-zinc-100 flex flex-col font-sans selection:bg-white selection:text-black relative overflow-x-hidden">
         {/* Three.js 3D Undulating Particle Wave Background (30% opacity) */}
         <ParticleWave className="opacity-30" />

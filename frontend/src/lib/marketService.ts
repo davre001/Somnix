@@ -121,6 +121,44 @@ export async function fetchLiveMarkets(pair: WindowPair, length: WindowLength): 
   return fallback;
 }
 
+const ALL_LENGTHS: WindowLength[] = ['1m', '3m', '5m', '15m', '1h'];
+
+/**
+ * Which of the app's offered window lengths actually have a live DreamDEX
+ * market for this pair right now (e.g. DreamDEX doesn't currently run a `3m`
+ * cadence at all). Used to disable a length in the UI rather than let someone
+ * pick one that can never go live — same "no live market" source of truth as
+ * fetchLiveMarkets, just checked against every length instead of one.
+ */
+export async function fetchLiveLengths(pair: WindowPair): Promise<WindowLength[]> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+
+    const res = await fetch(`/api/markets`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const body = await res.json();
+      const markets = body?.data?.markets;
+      if (Array.isArray(markets)) {
+        const liveIntervals = new Set(
+          markets
+            .filter((m: { asset?: string }) => m.asset === pair)
+            .map((m: { interval?: string | null }) => m.interval)
+        );
+        return ALL_LENGTHS.filter((len) => liveIntervals.has(len));
+      }
+    }
+  } catch {
+    // Offline: report nothing confirmed live rather than guessing.
+  }
+
+  return [];
+}
+
 /**
  * Attempts to fetch live orderbook odds from backend proxy
  */

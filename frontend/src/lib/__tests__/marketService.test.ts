@@ -5,6 +5,7 @@ import {
   getMarketWindow,
   createLock,
   fetchLiveMarkets,
+  fetchLiveLengths,
 } from '../marketService';
 import { MarketWindow } from '../types';
 
@@ -107,5 +108,40 @@ describe('fetchLiveMarkets backend matching', () => {
     const fallback = getMarketWindow('BTC', '15m');
     expect(market.id).toBe(fallback.id);
     expect(market.isLive).toBe(false);
+  });
+});
+
+describe('fetchLiveLengths', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns only the lengths that have a real market for that pair (e.g. DreamDEX has no 3m cadence)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          markets: [
+            { id: '0x1', asset: 'BTC', interval: '1m' },
+            { id: '0x2', asset: 'BTC', interval: '5m' },
+            { id: '0x3', asset: 'BTC', interval: '15m' },
+            { id: '0x4', asset: 'BTC', interval: '1h' },
+            { id: '0x5', asset: 'BTC', interval: '4h' }, // not one of the app's offered lengths
+            { id: '0x6', asset: 'ETH', interval: '3m' }, // wrong asset — must not leak into BTC's set
+          ],
+        },
+      }),
+    }));
+
+    const lengths = await fetchLiveLengths('BTC');
+    expect(lengths).toEqual(['1m', '5m', '15m', '1h']);
+  });
+
+  it('reports nothing live when the fetch fails, rather than guessing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+
+    const lengths = await fetchLiveLengths('BTC');
+    expect(lengths).toEqual([]);
   });
 });
