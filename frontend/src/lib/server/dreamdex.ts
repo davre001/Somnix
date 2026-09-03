@@ -43,7 +43,7 @@ function getExchange() {
   if (!exchange) {
     // Not a secret — same public GraphQL endpoint the client-side exchange
     // instance uses (see lib/exchange.ts); one env var for both.
-    const indexerUrl = process.env.NEXT_PUBLIC_DREAMDEX_INDEXER_URL || 'https://indexer-testnet.somnia.network/v1/graphql';
+    const indexerUrl = process.env.NEXT_PUBLIC_DREAMDEX_INDEXER_URL || 'https://dev.smk.somnia.host/v1/graphql';
     const adminSecret = process.env.DREAMDEX_INDEXER_ADMIN_SECRET;
     exchange = new SomniaMarkets({
       chain: somniaShannon,

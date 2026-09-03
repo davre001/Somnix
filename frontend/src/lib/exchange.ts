@@ -17,8 +17,11 @@ import type { WalletClient } from 'viem';
 import { MarketSide, WindowLength, WindowPair, PendingLockIntent } from './types';
 import { savePendingLockIntent, clearPendingLockIntent } from './marketService';
 
-const INDEXER_URL =
-  process.env.NEXT_PUBLIC_DREAMDEX_INDEXER_URL || 'https://indexer-testnet.somnia.network/v1/graphql';
+// Real testnet Hasura indexer, per the SDK's own README (§ "Create an
+// exchange") — not a domain we picked; `indexer-testnet.somnia.network` (the
+// old default here) never existed in DNS. Verified live via a `{ __typename }`
+// probe before wiring in.
+const INDEXER_URL = process.env.NEXT_PUBLIC_DREAMDEX_INDEXER_URL || 'https://dev.smk.somnia.host/v1/graphql';
 
 let exchange: SomniaMarkets | null = null;
 

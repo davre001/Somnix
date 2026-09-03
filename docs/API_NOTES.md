@@ -40,9 +40,17 @@ they have different trust levels (see `docs/THREAT_MODEL.md` §1):
 
 ## 1. DreamDEX Indexer (Hasura GraphQL)
 
-- **Endpoint**: `NEXT_PUBLIC_DREAMDEX_INDEXER_URL` (frontend, defaults to
-  `https://indexer-testnet.somnia.network/v1/graphql`) / `DREAMDEX_INDEXER_URL`
-  (backend, same default).
+- **Endpoint**: `NEXT_PUBLIC_DREAMDEX_INDEXER_URL`, defaulting to
+  `https://dev.smk.somnia.host/v1/graphql` — the real testnet Hasura indexer,
+  per the SDK's own README (`@somnia-chain/markets-sdk`, "Create an exchange"
+  section: `dev.smk.somnia.host` for testnet, `prd.smk.somnia.host` for
+  production/mainnet). An earlier default here,
+  `indexer-testnet.somnia.network`, was never a real domain — confirmed
+  NXDOMAIN via two independent public DNS resolvers (Cloudflare, Google) — so
+  every lock/claim attempt against it was failing at the indexer-read step
+  before a signature was ever requested. The `dev.smk.somnia.host` value was
+  verified live with a `{ "query": "{ __typename }" }` POST returning
+  `{"data":{"__typename":"query_root"}}` before being wired in.
 - **SDK surface used**: `SomniaMarkets.loadMarkets()` (→
   `client.listRegistryMarkets()`, live binary series only), `client.getMarket(marketId)`,
   `client.getMarketResolution` (via `exchange.ts#getResolution`), and the raw

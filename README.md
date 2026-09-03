@@ -261,152 +261,74 @@ Without test funds or a live window, judges can see the screens, but they will w
 
 ---
 
-## Backend skeleton status
+## Architecture
 
-The backend has been scaffolded into the main application layers we will build on:
+SOMNIX is chain-first and is one Next.js app — no separate backend service.
+Wallet actions (buy Up/Down, claim) always happen **client-side**
+(`frontend/src/lib/exchange.ts`), because only the user's own wallet can sign
+them; a server can never do that part.
 
-- API entrypoint and route mounting in [backend/src/index.ts](backend/src/index.ts)
-- DreamDEX and env helpers in [backend/src/lib/dreamdex.ts](backend/src/lib/dreamdex.ts) and [backend/src/lib/env.ts](backend/src/lib/env.ts)
-- HTTP route modules for markets, card, lock, trade, and claim in [backend/src/routes](backend/src/routes)
-- validation + service layer in [backend/src/services](backend/src/services)
-- SQLite-backed persistence abstraction in [backend/src/repositories](backend/src/repositories)
-- shared API contracts in [backend/src/types/api.ts](backend/src/types/api.ts)
-- error handling middleware in [backend/src/middleware/errorHandler.ts](backend/src/middleware/errorHandler.ts)
-
-This is deliberately structured so the app can later move from SQLite to another database or DreamDEX-backed data source without rewriting the route layer.
-
-The current backend endpoints are grouped as:
-
-- `/api/markets` — market listing + order book lookup
-- `/api/card` — generated share card image
-- `/api/lock` — lock creation and lookup; lock metadata comes from the client-confirmed execution
-- `/api/trade` — confirmed trade snapshot creation and lookup
-- `/api/claim` — pending claim creation, status confirmation, and lookup
-
-The backend is not yet connected to the frontend or real blockchain execution. SQLite currently stores lock, trade, and claim records locally; wallet signing and blockchain transactions remain client-side responsibilities.
-
-- Friend-card link (window + side, not your private keys)
-
----
-
-## Backend architecture
-
-SOMNIX is chain-first. Wallet actions (buy Up/Down, claim) always happen **client-side**, because only the user's own wallet can sign them — a server can never do that part.
-
-The backend exists for the few things a browser should not do alone: talking to the DreamDEX indexer without CORS/rate-limit pain, keeping contract/network config out of client bundles, and rendering the friend/share card image. It holds **no funds, no keys, and no accounts**.
-
-### What it is
-
-- A plain Express + TypeScript app, self-contained in `backend/` — its own `package.json`, `tsconfig.json`, `node_modules`, `.env.local`, and local SQLite database file. No framework beyond Express.
-- Run it with `cd backend && npm install && npm run dev`. It doesn't share a package.json or node_modules with the repo root or with the self-contained `frontend/` app; each project is run from its own folder.
-- Runs on **port 4000** (`npm run dev` / `npm run start`), so port 3000 stays free for the frontend.
-- Everything a route returns is public, cacheable data. Nothing it does requires a signature.
-
-### Responsibilities
-
-| Route                            | Does                                                                                                                   | Why not just call DreamDEX from the browser                                                    |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `GET /api/markets`               | Calls the SDK client's `listLiveBinaryMarkets()` against the DreamDEX indexer, short server-side cache (a few seconds) | Cuts duplicate client calls, avoids hammering the indexer, one place to normalize the response |
-| `GET /api/markets/:id/orderbook` | Resolves the market's pool address (`client.getMarket`) then reads `client.getBinaryOrderBook(pool)` for the odds bar  | Same as above — short-lived cache, one shape for the UI                                        |
-| `GET /api/card/:marketId/:side`  | Renders the friend/share card PNG (coin, window, side) as an SVG template rasterized with `sharp`                      | Social platforms fetch OG images server-side; a client-only page can't serve that              |
-
-Explicitly **not** here: creating orders, claiming, or anything touching a wallet — those stay in `lib/` on the client, same as `frontend_implementation.md` describes. Day budget and recents remain client-side (`localStorage`), while the backend SQLite store provides a persistence foundation for lock, trade, and claim records.
-
-There's no `/api/config` route: `@somnia-chain/markets-sdk` ships the testnet chain definition (`somniaShannon`, from `@somnia-chain/markets-sdk/chains`) and the protocol's contract addresses (`SOMNIA_TESTNET_ADDRESSES`) as public constants. Both frontend and backend import them directly from the package — nothing deployment-specific to route through a server.
-
-There's no `/docs` route either — no API-docs UI is served right now. `dreamdex.ts` and `env.ts` are unchanged from before; only the HTTP layer around them changed.
-
-### API contracts
-
-The backend records client-confirmed results; it never signs wallet transactions.
-
-- `POST /api/lock` requires `marketId`, `pair`, `length`, `side`, `amount`, `startPrice`, `hidePriceUntil`, and `payout`. It accepts optional `walletAddress` and `txHash`.
-- `POST /api/trade` requires the market identifiers plus `amount`, `startPrice`, `currentPrice`, `greenOdds`, `redOdds`, `payout`, and `isLive`.
-- `GET /api/trade/:marketId?side=green&length=15m` returns the persisted snapshot for that market/side/window.
-- `POST /api/claim` requires `lockId` and the client-generated `txHash`; new claims are stored as `pending`.
-- `PATCH /api/claim/:lockId/status` accepts `pending`, `claimed`, or `failed` after the client observes the transaction result.
-
-All successful responses use `{ "ok": true, "data": ... }`; validation and not-found failures use `{ "ok": false, "error": "..." }`.
+`app/api/*` route handlers exist only for the things a browser shouldn't do
+alone: reading the DreamDEX indexer without CORS/rate-limit pain (display
+only, never consulted before signing), rendering the friend/share card image,
+and mirroring a client-confirmed lock/claim into Turso for persisted history.
+They hold **no funds, no keys, and no accounts**, and every write is verified
+against a real on-chain receipt before being stored
+(`lib/server/chainVerify.ts`). Full endpoint-by-endpoint behavior, failure
+modes, and the three access paths' trust levels are documented in
+[`docs/API_NOTES.md`](docs/API_NOTES.md) — that file, not this section, is the
+source of truth for the API surface.
 
 ### Verification still happens on-chain, on the client
 
-The indexer proxy is a convenience, not a source of truth. Per the integration section above, the client always re-checks `getMarketOnchain` (status must be `Trading`) right before a tap — a slightly stale cached list from `/api/markets` should never be trusted to authorize a spend.
+The indexer proxy is a convenience, not a source of truth. The client always
+re-checks on-chain state right before a tap — a slightly stale cached list
+from `/api/markets` should never be trusted to authorize a spend.
 
 ### Structure
 
-Everything backend-specific — config included — lives inside `backend/`. The repo root only holds project-wide docs (this file, `LICENSE`, `frontend_implementation.md`) and, later, a sibling `frontend/`:
+SOMNIX is one Next.js app — `frontend/` — no separate backend service (see
+`docs/API_NOTES.md` §0 for why an earlier Express service was folded in):
 
 ```text
-backend/
+frontend/
   src/
-    app.ts                     # Testable Express app without opening a port
-    index.ts                   # Express app, mounts the routers, listens on PORT (default 4000)
-    routes/
-      markets.ts                # GET /api/markets, GET /api/markets/:id/orderbook
-      card.ts                   # GET /api/card/:marketId/:side
-      lock.ts                   # Lock creation and lookup
-      trade.ts                  # Trade snapshot creation and lookup
-      claim.ts                  # Claim creation, status updates, and lookup
+    app/
+      api/                     # Route handlers: markets, card, lock, claim (the history mirror)
+      trade/, locked/, reveal/, recents/   # Pages
+    components/                # UI
     lib/
-      dreamdex.ts               # SomniaMarkets client (indexerUrl + testnet chain/addresses) + short TTL cache
-      env.ts                    # typed server env (indexer URL, optional admin secret)
-    services/                   # Service logic and request validation
-    repositories/               # Persistence interfaces and SQLite implementation
-      index.ts
-      interfaces.ts
-      memoryStore.ts
-      sqliteStore.ts
-      sqliteStore.test.ts
-    types/api.ts                # Shared API contracts
-    middleware/                 # Async, error, and not-found handlers
-      asyncHandler.ts
-      errorHandler.ts
-    app.test.ts                 # HTTP contract tests
-  package.json                  # scripts: dev (tsx watch), build (tsc), start (node dist/index.js)
-  tsconfig.json                 # compiles src/**/*.ts -> dist/
-  somnix.db                     # Local SQLite database created at runtime
-  .env.local                    # gitignored; DREAMDEX_INDEXER_URL etc.
+      exchange.ts              # Browser SDK client (SomniaMarkets bound to the user's own wallet) — the only piece that moves money
+      somnia.ts                # Chain config, collateral token reads
+      marketService.ts         # Pending-lock-intent persistence, market fetch/display
+      history.ts               # Fire-and-forget POSTs to /api/lock, /api/claim
+      server/
+        dreamdex.ts             # Server-side indexer read (display proxy only)
+        chainVerify.ts          # Verifies a reported tx really confirmed on-chain
+        tursoStore.ts           # Turso (libSQL) persistence for the history mirror
   .env.example
 ```
 
 ### Env
 
-Server-only values (never exposed to the browser client) live in `backend/.env.local`:
+See `frontend/.env.example` for the full, current list. In short:
+`NEXT_PUBLIC_DREAMDEX_INDEXER_URL` (public, defaults to the real testnet
+indexer) is the only client-side value; `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN`
+(server-only) back the history mirror.
 
-```bash
-DREAMDEX_INDEXER_URL=
-# Optional: Hasura role/admin-secret for privileged server-only indexer reads.
-DREAMDEX_INDEXER_ADMIN_SECRET=
-# Optional: SQLite file path. Defaults to ./somnix.db from the backend directory.
-SOMNIX_DB_PATH=
-# Optional: allowed browser origin. Defaults to http://localhost:3000.
-FRONTEND_ORIGIN=
-```
-
-`backend/src/index.ts` loads it explicitly via `dotenv` (`dotenv.config({ path: path.resolve(process.cwd(), ".env.local") })`), resolved from `process.cwd()` — which is `backend/` as long as `npm run dev`/`start` are launched from inside it, same as `npm install`.
-
-The testnet chain and contract addresses aren't env vars — they're imported straight from `@somnia-chain/markets-sdk` (`somniaShannon`, `SOMNIA_TESTNET_ADDRESSES`).
+The testnet chain and contract addresses aren't env vars — they're imported
+straight from `@somnia-chain/markets-sdk` (`somniaShannon`,
+`SOMNIA_TESTNET_ADDRESSES`).
 
 ---
 
 ## How to run
 
-Backend:
-
 ```bash
 git clone <this-repo>
-cd somnix/backend
-cp .env.example .env.local   # then fill in DREAMDEX_INDEXER_URL
-npm install
-npm run dev                  # http://localhost:4000
-npm run build
-npm test
-```
-
-Frontend:
-
-```bash
-cd somnix/frontend
-npm install
-npm run dev               # http://localhost:3000
+cd somnix
+pnpm install
+cp frontend/.env.example frontend/.env.local   # fill in Turso vars for a persisted history mirror; optional for local dev
+pnpm dev                  # http://localhost:3000
+pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
