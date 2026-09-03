@@ -50,7 +50,7 @@ describe('claimWinnings — bypasses the SDK registry (excludes finalized market
         marketId: '0xmarket',
         market: '0xpooladdr',
         outcomeIdx: 0,
-        amount: 5_000_000n, // fromHuman(5, 6 decimals)
+        amount: BigInt(5_000_000), // fromHuman(5, 6 decimals)
       },
     ]);
   });
