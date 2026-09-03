@@ -187,7 +187,46 @@ const ParticleWave: React.FC<ParticleWaveProps> = ({ className = '' }) => {
     sceneRef.current.targetMouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
   };
 
+  const disposeScene = () => {
+    if (!sceneRef.current) return;
+    const { scene, renderer, particles } = sceneRef.current;
+    scene.remove(particles);
+    if (particles.geometry) particles.geometry.dispose();
+    if (particles.material) {
+      if (Array.isArray(particles.material)) {
+        particles.material.forEach(material => material.dispose());
+      } else {
+        particles.material.dispose();
+      }
+    }
+    renderer.dispose();
+    sceneRef.current = null;
+  };
+
   useEffect(() => {
+    const canvas = canvasRef.current;
+
+    // Browsers can silently kill a page's WebGL context (GPU driver reset,
+    // memory pressure, a backgrounded tab) without throwing — the render loop
+    // would otherwise keep calling requestAnimationFrame against a dead
+    // context forever, leaving the canvas permanently black with no error.
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      if (sceneRef.current?.animationId) {
+        cancelAnimationFrame(sceneRef.current.animationId);
+        sceneRef.current.animationId = null;
+      }
+    };
+
+    const handleContextRestored = () => {
+      disposeScene();
+      initScene();
+      animate();
+    };
+
+    canvas?.addEventListener('webglcontextlost', handleContextLost, false);
+    canvas?.addEventListener('webglcontextrestored', handleContextRestored, false);
+
     initScene();
     animate();
 
@@ -200,20 +239,9 @@ const ParticleWave: React.FC<ParticleWaveProps> = ({ className = '' }) => {
       }
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
-      
-      if (sceneRef.current) {
-        const { scene, renderer, particles } = sceneRef.current;
-        scene.remove(particles);
-        if (particles.geometry) particles.geometry.dispose();
-        if (particles.material) {
-          if (Array.isArray(particles.material)) {
-            particles.material.forEach(material => material.dispose());
-          } else {
-            particles.material.dispose();
-          }
-        }
-        renderer.dispose();
-      }
+      canvas?.removeEventListener('webglcontextlost', handleContextLost);
+      canvas?.removeEventListener('webglcontextrestored', handleContextRestored);
+      disposeScene();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
