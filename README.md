@@ -1,5 +1,7 @@
 # SOMNIX
 
+**Live: [somnix-iota.vercel.app](https://somnix-iota.vercel.app)** — Somnia Shannon testnet.
+
 **Lock one guess for this hour. Hide the price. See the result when the timer ends.**
 
 SOMNIX is an app on DreamDEX Event Contracts (Somnia).  

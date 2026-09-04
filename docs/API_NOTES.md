@@ -56,6 +56,18 @@ they have different trust levels (see `docs/THREAT_MODEL.md` §1):
   `client.getMarketResolution` (via `exchange.ts#getResolution`), and the raw
   `listLiveBinaryMarkets()`/`getBinaryOrderBook()` the backend proxy calls
   directly for display.
+- **`loadMarkets()`'s registry excludes finalized (resolved) binary markets by
+  design** — confirmed in the SDK's own source: the underlying
+  `listRegistryMarkets()` query filters to `finalized: false` for binary rows
+  specifically to keep the registry from being swamped by dead series. A
+  market is only claimable *after* it resolves, so by claim time it's almost
+  always already dropped from that registry — `exchange.redeem(ref, amount)`
+  (which resolves `ref` through it) then throws `"unknown market ref ... call
+  loadMarkets() first"` regardless of whether `loadMarkets()` was just called.
+  `exchange.ts#claimWinnings` works around this by reading the market
+  directly with `client.getMarket(marketId)` (unaffected by finalized status)
+  and calling the raw `trader.redeem()` instead — reproduced and fixed against
+  a real testnet claim on 2026-09-03, see `docs/LIMITATIONS.md` §1.
 
 ### Behavior & semantics
 | Aspect | Guarantee |
@@ -72,6 +84,7 @@ they have different trust levels (see `docs/THREAT_MODEL.md` §1):
 | **Indexer error during a real lock (frontend SDK)** | `IndexerError` from `loadMarkets()`/`createOrder()` | Treated as "nothing was sent" (`isAmbiguousTxError` → `false`) — the read needed to price/send the order never completed, so no pending-lock intent is left dangling. |
 | **No live market for the selected pair+interval** | `findLiveMarket` returns `null` | `lockValidation.canLock` is `false` with an explicit reason; `executeLock` also re-checks and throws if the market disappeared between validation and submission. |
 | **Empty order book (no resting liquidity on the side being bought)** | `InvalidInputError` from `createOrder`'s market-order pricing (`"the opposite side of the book is empty"`) | Surfaced to the user via `describeExchangeError`; the intent is discarded (not ambiguous — nothing was sent). This is expected behavior on thin testnet liquidity, not a bug. |
+| **`Market_by_pk` query hangs/times out entirely** | Observed directly against the indexer on 2026-09-03: `{ __typename }` and `listLiveBinaryMarkets` both responded normally, but `Market_by_pk` (which `client.getMarket`/`getResolution`/claim all depend on) timed out for *every* market id tried, including ones unrelated to any specific test. External indexer-side issue, not something this app controls or can route around — `getResolution`/`claimWinnings` will surface it as an `IndexerError` via `describeExchangeError` ("Somnia indexer is unreachable right now"), which is the correct honest behavior, not a bug to chase here. |
 
 ---
 
