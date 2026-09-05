@@ -70,6 +70,21 @@ export function LandingPage() {
             )}
           </div>
         </div>
+
+        {/* Mobile section links — horizontal scroll row (hidden on md+) */}
+        <nav className="md:hidden border-t border-white/[0.06] overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1 px-4 py-2 w-max">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="shrink-0 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </nav>
       </header>
 
       {/* ── Hero Section (split: text left · live charts right) ─────────── */}
@@ -190,7 +205,7 @@ export function LandingPage() {
                 {/* Micro-stats row */}
                 <motion.div
                   {...fadeUp(0.78)}
-                  className="mt-10 flex items-center gap-5 sm:gap-8 text-xs font-mono text-zinc-500"
+                  className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-8 text-xs font-mono text-zinc-500"
                 >
                   <div>
                     <span className="text-white font-bold block text-sm">1m – 1h</span>
@@ -362,7 +377,7 @@ export function LandingPage() {
                 >
                   <PublicIcon name={card.icon} size={card.featured ? 26 : 20} />
                 </div>
-                <div className={card.featured ? 'relative mt-auto pt-8' : 'relative'}>
+                <div className={card.featured ? 'relative mt-6 sm:mt-auto sm:pt-8' : 'relative'}>
                   <h3
                     className={`font-bold text-white ${
                       card.featured ? 'text-2xl sm:text-3xl' : 'text-sm sm:text-base mt-3'
@@ -514,13 +529,13 @@ export function LandingPage() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="glass-card relative rounded-3xl p-8 sm:p-12 overflow-hidden"
+            className="glass-card relative rounded-3xl p-6 sm:p-12 overflow-hidden"
           >
             {/* Ambient glows */}
             <div className="absolute top-0 left-1/4 w-64 h-32 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
             <div className="absolute bottom-0 right-1/4 w-64 h-32 bg-red-500/10 blur-3xl rounded-full pointer-events-none" />
 
-            <div className="relative grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div className="relative grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
               {[
                 { val: '< 1s', label: 'Settlement Time', color: 'text-emerald-400' },
                 { val: '~1.92×', label: 'Win Multiplier', color: 'text-white' },

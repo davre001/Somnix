@@ -347,15 +347,15 @@ export function CinematicFooter({
           </div>
 
           {/* 2. Main Center Content */}
-          <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 mt-20 w-full max-w-5xl mx-auto">
+          <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 mt-24 sm:mt-20 w-full max-w-5xl mx-auto">
             <h2
               ref={headingRef}
-              className="text-5xl md:text-8xl font-black text-emerald-400 tracking-tighter mb-6 text-center"
+              className="text-4xl sm:text-5xl md:text-8xl font-black text-emerald-400 tracking-tighter mb-4 sm:mb-6 text-center"
             >
               Ready to make your call?
             </h2>
 
-            <p className="max-w-md text-center text-sm md:text-base text-zinc-400 mb-12 leading-relaxed">
+            <p className="max-w-md text-center text-sm md:text-base text-zinc-400 mb-8 sm:mb-12 leading-relaxed">
               Lock a <span className="text-emerald-300 font-medium">Green</span> or{" "}
               <span className="text-red-400 font-medium">Red</span> on Somnia testnet. The chart
               hides, the window runs, and DreamDEX settles it on-chain.
@@ -369,7 +369,7 @@ export function CinematicFooter({
                   <MagneticButton
                     as="button"
                     onClick={onLaunchApp}
-                    className="footer-glass-pill-solid px-10 py-5 rounded-full font-bold text-sm md:text-base flex items-center gap-3"
+                    className="footer-glass-pill-solid px-7 py-4 sm:px-10 sm:py-5 rounded-full font-bold text-sm md:text-base flex items-center gap-3"
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -380,7 +380,7 @@ export function CinematicFooter({
                   <MagneticButton
                     as="button"
                     onClick={onConnectWallet}
-                    className="footer-glass-pill-solid px-10 py-5 rounded-full font-bold text-sm md:text-base flex items-center gap-3"
+                    className="footer-glass-pill-solid px-7 py-4 sm:px-10 sm:py-5 rounded-full font-bold text-sm md:text-base flex items-center gap-3"
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M3 7a2 2 0 012-2h11a2 2 0 012 2v1h1a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" strokeLinecap="round" strokeLinejoin="round" />
@@ -393,7 +393,7 @@ export function CinematicFooter({
                 <MagneticButton
                   as="button"
                   onClick={onWatchMode}
-                  className="footer-glass-pill px-10 py-5 rounded-full text-[#f4f4f5] font-bold text-sm md:text-base flex items-center gap-3 group"
+                  className="footer-glass-pill px-7 py-4 sm:px-10 sm:py-5 rounded-full text-[#f4f4f5] font-bold text-sm md:text-base flex items-center gap-3 group"
                 >
                   <svg className="w-5 h-5 text-zinc-400 group-hover:text-[#f4f4f5] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7S19 19 12 19 1.5 12 1.5 12z" strokeLinecap="round" strokeLinejoin="round" />
