@@ -6,6 +6,8 @@ import { useSomnix } from '@/lib/useSomnix';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
 import { LiveCryptoChart } from '@/components/LiveCryptoChart';
 import { PublicIcon } from '@/components/ui/public-icon';
+import FAQ1 from '@/components/ui/faq-monocrhome';
+import { CinematicFooter } from '@/components/ui/motion-footer';
 
 // ---------------------------------------------------------------------------
 // Shared fade-up helper so we don't repeat ourselves
@@ -21,6 +23,7 @@ const NAV_LINKS = [
   { label: 'Features', href: '#features' },
   { label: 'How It Works', href: '#how-it-works' },
   { label: 'Why Somnix', href: '#why-somnix' },
+  { label: 'FAQ', href: '#faq' },
   { label: 'Live Markets', href: '#live-markets' },
 ];
 
@@ -242,33 +245,96 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ── Feature Cards (glassmorphism) ────────────────────────────── */}
+        {/* ── Feature Cards (premium bento) ────────────────────────────── */}
         <section id="features" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-16 sm:pb-20 scroll-mt-20">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          {/* Section header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12 sm:mb-16"
+          >
+            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 mb-3 block">
+              Built on DreamDEX · Somnia testnet
+            </span>
+            <h2 className="text-4xl font-semibold leading-tight md:text-5xl text-emerald-400">
+              A calm way to call it
+            </h2>
+            <p className="mt-3 text-lg sm:text-xl text-neutral-400 max-w-xl mx-auto leading-snug">
+              Real on-chain markets, stripped down to one decision. No order book,
+              no leverage, no chart to babysit.
+            </p>
+          </motion.div>
+
+          {/* Bento grid — hero cell + supporting cells */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 auto-rows-[minmax(0,1fr)]">
             {[
               {
                 icon: 'eye-off' as const,
                 title: 'Zen Lock & Reveal',
-                desc: 'No ticking chart or order-book ladder after you lock. Put your phone down — we settle the result at 0:00.',
-                tint: 'text-white',
-                iconWrap: 'bg-white/[0.06] border-white/10',
+                desc: 'The moment you lock, the live price vanishes until the window ends. No ticking chart, no order-book ladder, no refreshing every few seconds — just a countdown to 0:00. This is the product: it breaks the habit that normal trading apps make worse.',
+                tint: 'text-emerald-300',
+                iconWrap: 'bg-emerald-400/[0.08] border-emerald-400/20',
+                blob: 'bg-emerald-500/10',
+                span: 'md:col-span-2 md:row-span-2',
+                featured: true,
                 delay: 0,
               },
               {
                 icon: 'shield' as const,
                 title: 'Hard Cap on Losses',
-                desc: 'You can only lose what you choose. Every lock has a fixed max loss — the amount you put in, never more.',
+                desc: 'You can only lose what you stake. Every lock has a fixed max loss — no leverage, nothing to liquidate.',
                 tint: 'text-blue-300',
                 iconWrap: 'bg-blue-400/[0.08] border-blue-400/20',
-                delay: 0.1,
+                blob: 'bg-blue-500/10',
+                span: '',
+                featured: false,
+                delay: 0.08,
               },
               {
                 icon: 'bolt' as const,
-                title: 'DreamDEX on Somnia',
-                desc: 'Direct integration with Somnia Event Contracts for sub-second finality and fair, guaranteed payouts.',
+                title: 'Sub-second Finality',
+                desc: 'DreamDEX Event Contracts settle on Somnia in under a second — real order-book odds, real payouts.',
+                tint: 'text-amber-300',
+                iconWrap: 'bg-amber-400/[0.08] border-amber-400/20',
+                blob: 'bg-amber-500/10',
+                span: '',
+                featured: false,
+                delay: 0.16,
+              },
+              {
+                icon: 'users' as const,
+                title: 'Real Crowd Odds',
+                desc: "See what the market thinks — live Green / Red split from the actual order book, with a warning when one side is already pricey.",
+                tint: 'text-white',
+                iconWrap: 'bg-white/[0.06] border-white/10',
+                blob: 'bg-white/[0.05]',
+                span: '',
+                featured: false,
+                delay: 0.24,
+              },
+              {
+                icon: 'trophy' as const,
+                title: 'One-tap Claim',
+                desc: 'Winnings never appear by magic. When your side wins on-chain, claim ~1.92× in a single tap — then run it back.',
                 tint: 'text-emerald-300',
                 iconWrap: 'bg-emerald-400/[0.08] border-emerald-400/20',
-                delay: 0.2,
+                blob: 'bg-emerald-500/10',
+                span: '',
+                featured: false,
+                delay: 0.32,
+              },
+              {
+                icon: 'eye' as const,
+                title: 'Watch Mode',
+                desc: 'Look around with no wallet — live windows, crowd odds and recent results. Connect only when you want to lock a real call.',
+                tint: 'text-blue-300',
+                iconWrap: 'bg-blue-400/[0.08] border-blue-400/20',
+                blob: 'bg-blue-500/10',
+                span: 'md:col-span-2',
+                featured: false,
+                delay: 0.4,
               },
             ].map((card, i) => (
               <motion.div
@@ -277,19 +343,42 @@ export function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ delay: card.delay, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                whileHover={{ y: -6, scale: 1.015 }}
+                whileHover={{ y: -6, scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                className="glass-card group relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl space-y-3 overflow-hidden cursor-default hover:border-white/25 transition-colors duration-300"
+                className={`glass-card group relative rounded-2xl sm:rounded-3xl overflow-hidden cursor-default hover:border-white/25 transition-colors duration-300 flex flex-col ${
+                  card.featured ? 'p-6 sm:p-8 justify-between' : 'p-5 sm:p-6'
+                } ${card.span}`}
               >
-                {/* Subtle animated gradient blob */}
-                <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-white/[0.04] blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                {/* Animated gradient blob */}
                 <div
-                  className={`relative w-11 h-11 rounded-xl flex items-center justify-center border ${card.iconWrap} ${card.tint} group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-300`}
+                  className={`absolute -top-10 -right-10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700 ${card.blob} ${
+                    card.featured ? 'w-40 h-40' : 'w-24 h-24'
+                  }`}
+                />
+                <div
+                  className={`relative rounded-xl flex items-center justify-center border ${card.iconWrap} ${card.tint} group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-300 ${
+                    card.featured ? 'w-14 h-14' : 'w-11 h-11'
+                  }`}
                 >
-                  <PublicIcon name={card.icon} size={20} />
+                  <PublicIcon name={card.icon} size={card.featured ? 26 : 20} />
                 </div>
-                <h3 className="relative text-sm sm:text-base font-bold text-white">{card.title}</h3>
-                <p className="relative text-xs text-zinc-400 leading-relaxed">{card.desc}</p>
+                <div className={card.featured ? 'relative mt-auto pt-8' : 'relative'}>
+                  <h3
+                    className={`font-bold text-white ${
+                      card.featured ? 'text-2xl sm:text-3xl' : 'text-sm sm:text-base mt-3'
+                    }`}
+                    style={card.featured ? { letterSpacing: '-0.02em' } : undefined}
+                  >
+                    {card.title}
+                  </h3>
+                  <p
+                    className={`text-zinc-400 leading-relaxed mt-2 ${
+                      card.featured ? 'text-base sm:text-lg' : 'text-xs'
+                    }`}
+                  >
+                    {card.desc}
+                  </p>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -306,13 +395,13 @@ export function LandingPage() {
             className="text-center mb-14 sm:mb-20"
           >
             <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 mb-3 block">
-              Lock &amp; Reveal · four steps
+              Lock &amp; Reveal · five steps
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white" style={{ letterSpacing: '-0.04em' }}>
+            <h2 className="text-4xl font-semibold leading-tight md:text-5xl text-emerald-400">
               How it works
             </h2>
-            <p className="mt-3 font-serif text-lg sm:text-xl text-zinc-300 max-w-xl mx-auto leading-snug">
-              You are deciding, not day-trading. Four steps, then you walk away.
+            <p className="mt-3 text-lg sm:text-xl text-neutral-400 max-w-xl mx-auto leading-snug">
+              You are deciding, not day-trading. A few steps, then you walk away.
             </p>
           </motion.div>
 
@@ -353,6 +442,15 @@ export function LandingPage() {
                 tint: 'text-amber-300',
                 ring: 'border-amber-400/25',
                 glow: 'bg-amber-400/[0.08]',
+              },
+              {
+                step: '05',
+                icon: 'share' as const,
+                title: 'Share the card',
+                desc: 'Send a friend card — "I locked Green on BTC this hour." One screen tells them the question, so they can join the next window without ever learning DreamDEX.',
+                tint: 'text-emerald-300',
+                ring: 'border-emerald-400/25',
+                glow: 'bg-emerald-400/[0.08]',
               },
             ].map((s, i) => {
               const iconRight = i % 2 === 0; // step 1 icon right, step 2 icon left, ...
@@ -458,10 +556,10 @@ export function LandingPage() {
             className="text-center mb-12"
           >
             <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 mb-3 block">The edge</span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white" style={{ letterSpacing: '-0.04em' }}>
+            <h2 className="text-4xl font-semibold leading-tight md:text-5xl text-emerald-400">
               Why SOMNIX?
             </h2>
-            <p className="mt-3 font-serif text-lg sm:text-xl text-zinc-300 max-w-xl mx-auto leading-snug">
+            <p className="mt-3 text-lg sm:text-xl text-neutral-400 max-w-xl mx-auto leading-snug">
               The question is small. The habit is loud. Most platforms make the habit
               worse — SOMNIX is built to give your attention back.
             </p>
@@ -522,130 +620,20 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ── Glowing CTA Banner ────────────────────────────────────────── */}
-        <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="glass-card relative rounded-3xl overflow-hidden p-10 sm:p-16 text-center"
-          >
-            {/* Big ambient glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[200px] bg-emerald-500/8 blur-[80px] rounded-full pointer-events-none" />
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
-
-            <div className="relative space-y-5">
-              <motion.div
-                animate={{ opacity: [0.6, 1, 0.6] }}
-                transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
-                className="inline-flex items-center gap-2 text-[11px] font-mono font-semibold uppercase tracking-widest text-emerald-400 bg-emerald-950/50 border border-emerald-800/50 px-3 py-1 rounded-full"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                Live on Somnia
-              </motion.div>
-
-              <h2
-                className="text-3xl sm:text-4xl lg:text-5xl font-black text-white"
-                style={{ letterSpacing: '-0.045em' }}
-              >
-                Ready to make{' '}
-                <span className="text-emerald-400">your call?</span>
-              </h2>
-              <p className="font-serif text-lg sm:text-xl text-zinc-300 max-w-md mx-auto leading-snug">
-                Connect your wallet and lock your first Green or Red in under 30 seconds.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                <LiquidMetalButton onClick={openWalletModal} variant="silver" height={52} width={270}>
-                  <div className="flex items-center justify-center gap-2 text-xs font-black text-black uppercase tracking-wider px-4">
-                    <PublicIcon name="wallet" size={16} />
-                    <span>Connect Wallet to Trade</span>
-                    <PublicIcon name="arrow-right" size={16} />
-                  </div>
-                </LiquidMetalButton>
-                <LiquidMetalButton onClick={enterAppInWatchMode} height={52} width={200}>
-                  <div className="flex items-center justify-center gap-2 text-xs font-bold text-zinc-200 uppercase tracking-wider px-4">
-                    <PublicIcon name="eye" size={16} className="text-zinc-400" />
-                    <span>Watch Mode</span>
-                  </div>
-                </LiquidMetalButton>
-              </div>
-            </div>
-          </motion.div>
+        {/* ── FAQ (monochrome accordion) ───────────────────────────────── */}
+        <section id="faq" className="w-full scroll-mt-20">
+          <FAQ1 />
         </section>
+
       </main>
 
-      {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="w-full border-t border-white/[0.06] bg-[#07070a] pt-14 pb-10 text-zinc-400">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
-            {/* Brand column */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white text-black font-black text-sm flex items-center justify-center tracking-tighter shadow-md">
-                  SX
-                </div>
-                <span className="font-black text-lg tracking-tight text-white uppercase">SOMNIX</span>
-              </div>
-              <p className="text-xs text-zinc-400 max-w-sm leading-relaxed">
-                The zero-stress binary market prediction engine built on Somnia Shannon Testnet. Predict
-                Green or Red, lock your call, and let DreamDEX smart contracts handle guaranteed settlement.
-              </p>
-              <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 w-fit px-3 py-1.5 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Somnia Shannon Testnet · Operational</span>
-              </div>
-            </div>
-
-            {/* Markets column */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Prediction Markets</h4>
-              <ul className="space-y-2 text-xs font-mono">
-                <li><button onClick={enterApp} className="hover:text-white transition-colors text-left">BTC / USD (1m - 1h)</button></li>
-                <li><button onClick={enterApp} className="hover:text-white transition-colors text-left">ETH / USD (1m - 1h)</button></li>
-                <li><button onClick={enterAppInWatchMode} className="hover:text-white transition-colors text-left">Live Watch Mode</button></li>
-                <li><span className="text-zinc-600">SOL / USD (Coming Soon)</span></li>
-              </ul>
-            </div>
-
-            {/* Network column */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Network &amp; DEX</h4>
-              <ul className="space-y-2 text-xs font-mono">
-                <li>
-                  <a href="https://shannon-explorer.somnia.network" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Shannon Explorer</a>
-                </li>
-                <li>
-                  <a href="https://testnet.somnia.network" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Somnia Testnet Portal</a>
-                </li>
-                <li>
-                  <a href="https://testnet.somnia.network/faucet" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Official STT Faucet</a>
-                </li>
-                <li><span className="text-zinc-500">Chain ID: 50312</span></li>
-              </ul>
-            </div>
-
-            {/* Safety column */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Discipline &amp; Safety</h4>
-              <ul className="space-y-2 text-xs font-mono">
-                <li><span className="text-zinc-300">Hard Cap Loss Guarantee</span></li>
-                <li><span className="text-zinc-300">Zen Lock Timers</span></li>
-                <li><span className="text-zinc-300">~1.92x Binary Multiplier</span></li>
-                <li><span className="text-zinc-300">Live Order Book Pricing</span></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-zinc-500">
-            <div>© 2026 SOMNIX. Built for Somnia × DreamDEX Event Contracts.</div>
-            <div className="text-center sm:text-right text-zinc-500 text-[10px]">
-              No financial advice. Smart contracts deployed on Somnia Testnet.
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* ── Cinematic curtain-reveal footer ───────────────────────────── */}
+      <CinematicFooter
+        isConnected={wallet.isConnected}
+        onConnectWallet={openWalletModal}
+        onWatchMode={enterAppInWatchMode}
+        onLaunchApp={enterApp}
+      />
     </div>
   );
 }

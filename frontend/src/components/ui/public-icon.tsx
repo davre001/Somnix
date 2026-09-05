@@ -22,6 +22,7 @@ export type PublicIconName =
   | 'wallet'
   | 'arrow-right'
   | 'x'
+  | 'share'
   | 'external-link'
   | 'alert-circle'
   | 'sparkles'
