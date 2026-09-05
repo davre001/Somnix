@@ -1,5 +1,14 @@
 # SOMNIX
 
+[![Live on Vercel](https://img.shields.io/badge/Live-somnix--iota.vercel.app-000000?style=flat&logo=vercel&logoColor=white)](https://somnix-iota.vercel.app)
+[![Somnia Testnet](https://img.shields.io/badge/Somnia-Shannon%20Testnet-8B5CF6?style=flat)](https://shannon-explorer.somnia.network)
+[![Chain ID](https://img.shields.io/badge/Chain%20ID-50312-22C55E?style=flat)](https://shannon-explorer.somnia.network)
+[![Built on DreamDEX](https://img.shields.io/badge/Built%20on-DreamDEX%20Event%20Contracts-EF4444?style=flat)](https://docs.dreamdex.io/developers/event-contracts)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat&logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![viem](https://img.shields.io/badge/viem-onchain-F9A03C?style=flat)](https://viem.sh)
+
 **Live: [somnix-iota.vercel.app](https://somnix-iota.vercel.app)** — Somnia Shannon testnet.
 
 **Lock one call for this window. Hide the price. See the result when the timer ends.**
