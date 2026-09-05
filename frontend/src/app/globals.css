@@ -13,10 +13,17 @@
   /* Self-hosted via @fontsource/source-code-pro (imported in layout.tsx) —
      no next/font/google, so no build-time dependency on fonts.googleapis.com. */
   --font-source-code-pro: 'Source Code Pro';
+  /* --font-inter and --font-instrument are owned by next/font/local
+     (src/app/fonts.ts); they're set on <html> via the font `variable`
+     classes and already carry their own fallback stacks. Do NOT redefine
+     them here — a literal 'Inter' would shadow the hashed self-hosted family. */
 }
 
 @theme {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, serif;
   --font-space: var(--font-source-code-pro), monospace;
+  --font-mono: var(--font-source-code-pro), monospace;
   --color-bg-deep: #050507;
   --color-card-dark: #0d0d11;
   --color-card-border: #1f1f24;
@@ -33,8 +40,8 @@ html,
 body {
   background-color: #050507;
   color: #f4f4f5;
-  font-family: var(--font-source-code-pro), monospace;
-  letter-spacing: -0.03em;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  letter-spacing: -0.011em;
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
@@ -122,6 +129,85 @@ body::after {
   background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
   background-size: 200% 100%;
   animation: shimmer 2.5s infinite;
+}
+
+/* ---------------------------------------------------------------------------
+   Glassmorphism — frosted translucent cards used across the landing page.
+   Backdrop blur + translucent white + 1px light border + layered depth.
+   --------------------------------------------------------------------------- */
+.glass-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  backdrop-filter: blur(16px) saturate(120%);
+  box-shadow:
+    0 8px 32px -8px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 16px 48px -12px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Top light-catch edge — the reflective glass highlight */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    140deg,
+    rgba(255, 255, 255, 0.22),
+    rgba(255, 255, 255, 0) 42%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Animated dash flow for the "how it works" workflow connector */
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.animate-flow-dash {
+  stroke-dasharray: 4 8;
+  animation: flow-dash 1.1s linear infinite;
+}
+
+@keyframes node-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+  }
+}
+.animate-node-pulse {
+  animation: node-pulse 2.4s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-flow-dash,
+  .animate-node-pulse,
+  .animate-pulse-ring,
+  .animate-float,
+  .animate-shimmer {
+    animation: none !important;
+  }
 }
 
 /* Monochromatic noise background overlay */

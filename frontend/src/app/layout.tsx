@@ -4,6 +4,7 @@ import '@fontsource/source-code-pro/500.css';
 import '@fontsource/source-code-pro/600.css';
 import '@fontsource/source-code-pro/700.css';
 import './globals.css';
+import { inter, instrumentSerif } from './fonts';
 import { SomnixProvider } from '@/lib/useSomnix';
 import { ParticleWave } from '@/components/ui/particle-wave';
 
@@ -27,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark antialiased">
+    <html lang="en" className={`dark antialiased ${inter.variable} ${instrumentSerif.variable}`}>
       <head>
         {/* Speeds up the first TradingView chart load (components/LiveCryptoChart.tsx) */}
         <link rel="preconnect" href="https://s.tradingview.com" />

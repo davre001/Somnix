@@ -4,16 +4,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useSomnix } from '@/lib/useSomnix';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
-import { HeroMarquee } from '@/components/ui/hero-marquee';
-
-import {
-  Wallet,
-  Eye,
-  EyeOff,
-  ShieldCheck,
-  Zap,
-  ArrowRight,
-} from 'lucide-react';
+import { LiveCryptoChart } from '@/components/LiveCryptoChart';
+import { PublicIcon } from '@/components/ui/public-icon';
 
 // ---------------------------------------------------------------------------
 // Shared fade-up helper so we don't repeat ourselves
@@ -24,50 +16,12 @@ const fadeUp = (delay: number) => ({
   transition: { delay, duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
 });
 
-// ---------------------------------------------------------------------------
-// Marquee images  (crypto / finance / tech aesthetic from Unsplash)
-// ---------------------------------------------------------------------------
-const MARQUEE_IMAGES = [
-  {
-    src: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&auto=format&fit=crop&q=80',
-    alt: 'Crypto trading chart on dark terminal',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1639762681057-408e52192e55?w=600&auto=format&fit=crop&q=80',
-    alt: 'Blockchain glowing network nodes',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600&auto=format&fit=crop&q=80',
-    alt: 'Security lock on dark background',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop&q=80',
-    alt: 'Analytics dashboard in dark environment',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&auto=format&fit=crop&q=80',
-    alt: 'Serene misty mountain at dawn',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=600&auto=format&fit=crop&q=80',
-    alt: 'Ethereum coin glowing on dark surface',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=600&auto=format&fit=crop&q=80',
-    alt: 'Bitcoin coin close-up',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=600&auto=format&fit=crop&q=80',
-    alt: 'DeFi digital finance abstract',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1607798748738-b15c40d33d57?w=600&auto=format&fit=crop&q=80',
-    alt: 'Data streams in dark tunnel',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1535223289827-42f1e9919769?w=600&auto=format&fit=crop&q=80',
-    alt: 'Futuristic digital network',
-  },
+// Nav section anchors
+const NAV_LINKS = [
+  { label: 'Features', href: '#features' },
+  { label: 'How It Works', href: '#how-it-works' },
+  { label: 'Why Somnix', href: '#why-somnix' },
+  { label: 'Live Markets', href: '#live-markets' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -77,197 +31,243 @@ export function LandingPage() {
   return (
     <div className="w-full flex-1 flex flex-col">
       {/* ── Sticky Top Nav ─────────────────────────────────────────────── */}
-      <header className="w-full border-b border-zinc-800/80 bg-[#050507]/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <header className="w-full border-b border-white/[0.06] bg-[#050507]/70 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          {/* Brand */}
+          <div className="flex items-center gap-3 shrink-0">
             <div className="w-8 h-8 rounded-lg bg-white text-black font-black text-sm flex items-center justify-center tracking-tighter shadow-md">
               SX
             </div>
             <span className="font-black text-lg tracking-tight text-white uppercase">SOMNIX</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {wallet.isConnected ? (
-              <LiquidMetalButton onClick={enterApp} variant="silver" height={40} width={150}>
+          {/* Center section links */}
+          <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="group relative px-3.5 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors"
+              >
+                {link.label}
+                <span className="absolute left-3.5 right-3.5 -bottom-0.5 h-px bg-gradient-to-r from-emerald-400 to-red-400 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
+              </a>
+            ))}
+          </nav>
+
+          {/* Right — enter app only when already connected (connect lives in hero) */}
+          <div className="flex items-center shrink-0">
+            {wallet.isConnected && (
+              <LiquidMetalButton onClick={enterApp} variant="silver" height={40} width={140}>
                 <div className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider">
                   <span>Enter App</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <PublicIcon name="arrow-right" size={14} />
                 </div>
               </LiquidMetalButton>
-            ) : (
-              <>
-                <LiquidMetalButton
-                  onClick={enterAppInWatchMode}
-                  height={38}
-                  width={125}
-                  className="hidden sm:inline-block"
-                >
-                  <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-200">
-                    <Eye className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Watch Mode</span>
-                  </div>
-                </LiquidMetalButton>
-
-                <LiquidMetalButton onClick={openWalletModal} variant="silver" height={40} width={150}>
-                  <div className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-wider">
-                    <Wallet className="w-3.5 h-3.5" />
-                    <span>Connect</span>
-                  </div>
-                </LiquidMetalButton>
-              </>
             )}
           </div>
         </div>
       </header>
 
-      {/* ── Hero Section ───────────────────────────────────────────────── */}
+      {/* ── Hero Section (split: text left · live charts right) ─────────── */}
       <main className="flex-1 flex flex-col">
-        {/* Text + CTAs block */}
-        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-8 sm:pb-12 text-center flex flex-col items-center">
-
-          {/* Main headline – word-by-word stagger */}
-          <motion.h1
-            className="text-4xl xs:text-5xl sm:text-6xl lg:text-7xl font-black text-white uppercase leading-[1.02]"
-            style={{ letterSpacing: '-0.05em' }}
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: {},
-              visible: { transition: { staggerChildren: 0.07, delayChildren: 0 } },
-            }}
+        <section
+          id="live-markets"
+          className="relative w-full overflow-hidden"
+        >
+          {/* Teal radial glow — bottom-center bloom like the reference */}
+          <motion.div
+            aria-hidden
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.4 }}
+            className="pointer-events-none absolute inset-0"
           >
-            {[
-              { text: 'Predict', cls: 'text-white' },
-              { text: 'the', cls: 'text-white' },
-              { text: 'market.', cls: 'text-white' },
-              { text: '\u200B', cls: '', br: true },
-              { text: 'Green', cls: 'text-emerald-400' },
-              { text: 'or', cls: 'text-white' },
-              { text: 'Red.', cls: 'text-red-500' },
-              { text: '\u200B', cls: '', br: true },
-              { text: 'Zero', cls: 'text-white' },
-              { text: 'chart', cls: 'text-white' },
-              { text: 'stress.', cls: 'text-white' },
-            ].map((w, i) =>
-              w.br ? (
-                <br key={i} className="hidden sm:block" />
-              ) : (
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/3 -translate-y-1/4 w-[900px] max-w-[120vw] h-[620px] bg-emerald-500/[0.13] blur-[120px] rounded-full" />
+            <div className="absolute right-0 top-10 w-[520px] max-w-[80vw] h-[420px] bg-emerald-400/[0.08] blur-[110px] rounded-full" />
+          </motion.div>
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-20 pb-14 sm:pb-24">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-12 lg:gap-8 items-center">
+              {/* LEFT — eyebrow, two-tone title, body, pill CTA */}
+              <div className="flex flex-col items-start text-left">
+                {/* Eyebrow */}
                 <motion.span
-                  key={i}
-                  className={`inline-block ${w.cls}`}
+                  {...fadeUp(0)}
+                  className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.22em] text-emerald-300/90 mb-5"
+                >
+                  Live on Somnia · DreamDEX
+                </motion.span>
+
+                {/* Main headline — two-tone, word-by-word stagger */}
+                <motion.h1
+                  className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[0.98] tracking-tight"
+                  style={{ letterSpacing: '-0.045em' }}
+                  initial="hidden"
+                  animate="visible"
                   variants={{
-                    hidden: { opacity: 0, y: 28 },
-                    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+                    hidden: {},
+                    visible: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } },
                   }}
                 >
-                  {w.text}&nbsp;
-                </motion.span>
-              )
-            )}
-          </motion.h1>
+                  {[
+                    { text: 'Call', cls: 'text-white' },
+                    { text: 'the', cls: 'text-white' },
+                    { text: 'candle.', cls: 'text-white' },
+                    { text: '​', cls: '', br: true },
+                    { text: 'Hide', cls: 'text-white' },
+                    { text: 'the', cls: 'text-white' },
+                    {
+                      text: 'chart.',
+                      cls: 'bg-gradient-to-r from-emerald-300 via-emerald-400 to-emerald-500 bg-clip-text text-transparent',
+                    },
+                  ].map((w, i) =>
+                    w.br ? (
+                      <br key={i} />
+                    ) : (
+                      <motion.span
+                        key={i}
+                        className={`inline-block ${w.cls}`}
+                        variants={{
+                          hidden: { opacity: 0, y: 28 },
+                          visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+                        }}
+                      >
+                        {w.text}&nbsp;
+                      </motion.span>
+                    )
+                  )}
+                </motion.h1>
 
-          {/* Description */}
-          <motion.p
-            {...fadeUp(0.55)}
-            className="mt-5 max-w-xl text-sm sm:text-base text-zinc-400 font-normal leading-relaxed"
-            style={{ letterSpacing: '-0.01em', wordSpacing: '-0.04em' }}
-          >
-            Simple crypto event predictions on Somnia. Choose whether Bitcoin or Ethereum finishes{' '}
-            <strong className="text-emerald-400 font-bold">Green (Up)</strong> or{' '}
-            <strong className="text-red-400 font-bold">Red (Down)</strong>. Lock your call, put your
-            phone down, and claim your winnings when the window ends.
-          </motion.p>
+                {/* Body copy */}
+                <motion.p
+                  {...fadeUp(0.5)}
+                  className="mt-6 max-w-md text-base sm:text-lg leading-relaxed text-zinc-400"
+                >
+                  One tap decides it — <span className="text-emerald-300 font-medium">Green</span> or{' '}
+                  <span className="text-red-400 font-medium">Red</span> on Bitcoin and Ethereum. Then the
+                  price vanishes, so you put the phone down and let the window run.
+                </motion.p>
 
-          {/* CTA buttons */}
-          <motion.div
-            {...fadeUp(0.7)}
-            className="mt-7 flex flex-col sm:flex-row items-center gap-3 sm:gap-4"
-          >
-            {wallet.isConnected ? (
-              <LiquidMetalButton onClick={enterApp} variant="silver" height={50} width={280}>
-                <div className="flex items-center justify-center gap-2 text-xs font-black text-black uppercase tracking-wider px-4">
-                  <span>Launch Trading App</span>
-                  <ArrowRight className="w-4 h-4 shrink-0" />
+                {/* Pill CTAs */}
+                <motion.div
+                  {...fadeUp(0.66)}
+                  className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4"
+                >
+                  {wallet.isConnected ? (
+                    <button
+                      onClick={enterApp}
+                      className="group inline-flex items-center gap-2.5 rounded-full bg-white text-black pl-6 pr-5 py-3 text-sm font-bold tracking-tight transition-all duration-200 hover:gap-3.5 hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] active:scale-95"
+                    >
+                      <span>Launch Trading App</span>
+                      <PublicIcon name="arrow-right" size={16} />
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={openWalletModal}
+                        className="group inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-white/[0.03] text-white pl-6 pr-5 py-3 text-sm font-bold tracking-tight backdrop-blur-sm transition-all duration-200 hover:border-white/60 hover:bg-white/[0.06] hover:gap-3.5 active:scale-95"
+                      >
+                        <PublicIcon name="wallet" size={16} />
+                        <span>Connect Wallet</span>
+                        <PublicIcon name="arrow-right" size={16} className="text-emerald-300" />
+                      </button>
+
+                      <button
+                        onClick={enterAppInWatchMode}
+                        className="group inline-flex items-center gap-2 text-sm font-semibold text-zinc-400 hover:text-white transition-colors py-3 px-2"
+                      >
+                        <PublicIcon name="eye" size={16} className="text-zinc-500 group-hover:text-zinc-300 transition-colors" />
+                        <span>Watch Mode</span>
+                      </button>
+                    </>
+                  )}
+                </motion.div>
+
+                {/* Micro-stats row */}
+                <motion.div
+                  {...fadeUp(0.78)}
+                  className="mt-10 flex items-center gap-5 sm:gap-8 text-xs font-mono text-zinc-500"
+                >
+                  <div>
+                    <span className="text-white font-bold block text-sm">1m – 1h</span>
+                    <span>Windows</span>
+                  </div>
+                  <div className="h-7 w-px bg-white/10" />
+                  <div>
+                    <span className="text-white font-bold block text-sm">Hard Cap</span>
+                    <span>Max Loss = Stake</span>
+                  </div>
+                  <div className="h-7 w-px bg-white/10" />
+                  <div>
+                    <span className="text-white font-bold block text-sm">&lt; 1s</span>
+                    <span>Finality</span>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* RIGHT — layered / overlapping live trading panels */}
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                className="relative"
+              >
+                {/* Layered on lg+, simple stack on mobile */}
+                <div className="lg:relative lg:h-[560px] flex flex-col gap-5 lg:block">
+                  {/* Back panel — ETH, offset up-right, tilted */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, rotate: 0 }}
+                    animate={{ opacity: 1, y: 0, rotate: 3 }}
+                    transition={{ delay: 0.5, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                    whileHover={{ rotate: 1.5, scale: 1.02 }}
+                    className="lg:absolute lg:top-0 lg:right-0 lg:w-[78%] lg:z-10 lg:origin-top-right"
+                  >
+                    <LiveCryptoChart pair="ETH" length="15m" title="Live Session" />
+                  </motion.div>
+
+                  {/* Front panel — BTC, lower-left overlap */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 30, rotate: 0 }}
+                    animate={{ opacity: 1, y: 0, rotate: -2 }}
+                    transition={{ delay: 0.65, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                    whileHover={{ rotate: 0, scale: 1.02, y: -4 }}
+                    className="lg:absolute lg:bottom-0 lg:left-0 lg:w-[80%] lg:z-20 lg:origin-bottom-left"
+                  >
+                    <LiveCryptoChart pair="BTC" length="15m" title="Live Session" />
+                  </motion.div>
                 </div>
-              </LiquidMetalButton>
-            ) : (
-              <>
-                <LiquidMetalButton onClick={openWalletModal} variant="silver" height={50} width={290}>
-                  <div className="flex items-center justify-center gap-2 text-xs font-black text-black uppercase tracking-wider px-4">
-                    <Wallet className="w-4 h-4 shrink-0" />
-                    <span>Connect Wallet to Trade</span>
-                    <ArrowRight className="w-4 h-4 shrink-0" />
-                  </div>
-                </LiquidMetalButton>
-
-                <LiquidMetalButton onClick={enterAppInWatchMode} height={50} width={220}>
-                  <div className="flex items-center justify-center gap-2 text-xs font-bold text-zinc-200 uppercase tracking-wider px-4">
-                    <Eye className="w-4 h-4 text-zinc-400 shrink-0" />
-                    <span>Explore Watch Mode</span>
-                  </div>
-                </LiquidMetalButton>
-              </>
-            )}
-          </motion.div>
-
-          {/* Micro-stats row */}
-          <motion.div
-            {...fadeUp(0.85)}
-            className="mt-8 flex items-center justify-center gap-5 sm:gap-10 text-xs font-mono text-zinc-500"
-          >
-            <div className="text-center">
-              <span className="text-white font-bold block text-sm">1m – 1h</span>
-              <span>Windows</span>
+              </motion.div>
             </div>
-            <div className="h-6 w-px bg-zinc-800" />
-            <div className="text-center">
-              <span className="text-white font-bold block text-sm">Hard Cap</span>
-              <span>Max Loss = Stake</span>
-            </div>
-            <div className="h-6 w-px bg-zinc-800" />
-            <div className="text-center">
-              <span className="text-white font-bold block text-sm">&lt; 1s</span>
-              <span>Finality</span>
-            </div>
-          </motion.div>
+          </div>
         </section>
 
-        {/* ── Animated Marquee strip ──────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.55, duration: 0.8 }}
-          className="w-full pb-2"
-        >
-          <HeroMarquee images={MARQUEE_IMAGES} />
-        </motion.div>
-
-        {/* ── Feature Cards (animated, glowing) ────────────────────────── */}
-        <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-16 sm:pb-20">
+        {/* ── Feature Cards (glassmorphism) ────────────────────────────── */}
+        <section id="features" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-16 sm:pb-20 scroll-mt-20">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {[
               {
-                icon: <EyeOff className="w-5 h-5" />,
+                icon: 'eye-off' as const,
                 title: 'Zen Lock & Reveal',
-                desc: 'No ticking chart or order book ladder after you lock. Put your phone down. We calculate the result at 0:00.',
-                glow: 'group-hover:shadow-[0_0_40px_rgba(255,255,255,0.05)]',
-                iconBg: 'bg-zinc-900 border-zinc-700',
+                desc: 'No ticking chart or order-book ladder after you lock. Put your phone down — we settle the result at 0:00.',
+                tint: 'text-white',
+                iconWrap: 'bg-white/[0.06] border-white/10',
                 delay: 0,
               },
               {
-                icon: <ShieldCheck className="w-5 h-5" />,
+                icon: 'shield' as const,
                 title: 'Hard Cap on Losses',
                 desc: 'You can only lose what you choose. Every lock has a fixed max loss — the amount you put in, never more.',
-                glow: 'group-hover:shadow-[0_0_40px_rgba(59,130,246,0.08)]',
-                iconBg: 'bg-blue-950/60 border-blue-800/40',
+                tint: 'text-blue-300',
+                iconWrap: 'bg-blue-400/[0.08] border-blue-400/20',
                 delay: 0.1,
               },
               {
-                icon: <Zap className="w-5 h-5 text-emerald-400" />,
+                icon: 'bolt' as const,
                 title: 'DreamDEX on Somnia',
-                desc: 'Direct integration with Somnia Event Contracts for sub-second finality and fair guaranteed payouts.',
-                glow: 'group-hover:shadow-[0_0_40px_rgba(52,211,153,0.1)]',
-                iconBg: 'bg-emerald-950/60 border-emerald-800/40',
+                desc: 'Direct integration with Somnia Event Contracts for sub-second finality and fair, guaranteed payouts.',
+                tint: 'text-emerald-300',
+                iconWrap: 'bg-emerald-400/[0.08] border-emerald-400/20',
                 delay: 0.2,
               },
             ].map((card, i) => (
@@ -277,80 +277,135 @@ export function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ delay: card.delay, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className={`group relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#0c0c10] border border-zinc-800/80 hover:border-zinc-600/60 transition-all duration-300 space-y-3 overflow-hidden ${card.glow}`}
+                whileHover={{ y: -6, scale: 1.015 }}
+                whileTap={{ scale: 0.99 }}
+                className="glass-card group relative p-5 sm:p-6 rounded-2xl sm:rounded-3xl space-y-3 overflow-hidden cursor-default hover:border-white/25 transition-colors duration-300"
               >
                 {/* Subtle animated gradient blob */}
-                <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-white/[0.02] blur-2xl group-hover:scale-150 transition-transform duration-700" />
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold border ${card.iconBg}`}>
-                  {card.icon}
+                <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-white/[0.04] blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                <div
+                  className={`relative w-11 h-11 rounded-xl flex items-center justify-center border ${card.iconWrap} ${card.tint} group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-300`}
+                >
+                  <PublicIcon name={card.icon} size={20} />
                 </div>
-                <h3 className="text-sm sm:text-base font-bold text-white">{card.title}</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">{card.desc}</p>
+                <h3 className="relative text-sm sm:text-base font-bold text-white">{card.title}</h3>
+                <p className="relative text-xs text-zinc-400 leading-relaxed">{card.desc}</p>
               </motion.div>
             ))}
           </div>
         </section>
 
-        {/* ── How It Works ──────────────────────────────────────────────── */}
-        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+        {/* ── How It Works (alternating zigzag: big icon + content) ────── */}
+        <section id="how-it-works" className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 scroll-mt-20">
           {/* Section header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-12"
+            className="text-center mb-14 sm:mb-20"
           >
-            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 mb-3 block">Three steps</span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase" style={{ letterSpacing: '-0.04em' }}>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 mb-3 block">
+              Lock &amp; Reveal · four steps
+            </span>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white" style={{ letterSpacing: '-0.04em' }}>
               How it works
             </h2>
+            <p className="mt-3 font-serif text-lg sm:text-xl text-zinc-300 max-w-xl mx-auto leading-snug">
+              You are deciding, not day-trading. Four steps, then you walk away.
+            </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 relative">
-            {/* Connector line on desktop */}
-            <div className="hidden sm:block absolute top-8 left-[16.5%] right-[16.5%] h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
-
+          <div className="flex flex-col gap-12 sm:gap-16">
             {[
               {
                 step: '01',
-                title: 'Pick your pair & window',
-                desc: 'Choose BTC or ETH. Set a time window from 1 minute up to 1 hour. No more decisions after that.',
-                color: 'text-white',
-                ring: 'ring-zinc-700',
+                icon: 'target' as const,
+                title: 'Pick pair & window',
+                desc: 'Choose BTC or ETH and a window from 1 minute to 1 hour. See the odds and your max loss up front — before you ever commit a cent.',
+                tint: 'text-white',
+                ring: 'border-white/20',
+                glow: 'bg-white/[0.06]',
               },
               {
                 step: '02',
+                icon: 'lock' as const,
                 title: 'Lock Green or Red',
-                desc: 'Tap once. Your stake locks, the live price disappears. Somnix goes zen — no charts, no anxiety.',
-                color: 'text-emerald-400',
-                ring: 'ring-emerald-800/60',
+                desc: 'Tap once. Your stake buys the real outcome token on-chain, the live price disappears, and Somnix goes zen.',
+                tint: 'text-emerald-300',
+                ring: 'border-emerald-400/25',
+                glow: 'bg-emerald-400/[0.08]',
               },
               {
                 step: '03',
-                title: 'Claim your winnings',
-                desc: 'When the window closes the DreamDEX oracle settles. Winners get ~1.92x, on-chain in under a second.',
-                color: 'text-red-400',
-                ring: 'ring-red-800/60',
+                icon: 'eye-off' as const,
+                title: 'Put the phone down',
+                desc: 'No chart, no order book, no second-guessing. Just a countdown to 0:00. Leave, live your life, and come back.',
+                tint: 'text-blue-300',
+                ring: 'border-blue-400/25',
+                glow: 'bg-blue-400/[0.08]',
               },
-            ].map((s, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{ delay: i * 0.15, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col items-center text-center gap-4"
-              >
-                <div className={`w-16 h-16 rounded-2xl bg-[#0c0c10] border border-zinc-800 ring-1 ${s.ring} flex items-center justify-center shadow-lg relative`}>
-                  <span className={`text-2xl font-black font-mono ${s.color}`}>{s.step}</span>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-sm font-bold text-white">{s.title}</h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed max-w-[220px] mx-auto">{s.desc}</p>
-                </div>
-              </motion.div>
-            ))}
+              {
+                step: '04',
+                icon: 'trophy' as const,
+                title: 'Reveal & claim',
+                desc: 'The DreamDEX oracle settles on-chain. If you called it, claim ~1.92× — then run it back on the next window.',
+                tint: 'text-amber-300',
+                ring: 'border-amber-400/25',
+                glow: 'bg-amber-400/[0.08]',
+              },
+            ].map((s, i) => {
+              const iconRight = i % 2 === 0; // step 1 icon right, step 2 icon left, ...
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-80px' }}
+                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  className={`flex flex-col ${
+                    iconRight ? 'md:flex-row' : 'md:flex-row-reverse'
+                  } items-center gap-6 sm:gap-10`}
+                >
+                  {/* Content */}
+                  <motion.div
+                    initial={{ opacity: 0, x: iconRight ? -30 : 30 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, margin: '-80px' }}
+                    transition={{ delay: 0.15, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                    className={`flex-1 space-y-3 text-center ${iconRight ? 'md:text-left' : 'md:text-right'}`}
+                  >
+                    <span className="inline-block text-5xl sm:text-6xl font-black font-mono text-white/10 leading-none">
+                      {s.step}
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-black text-white" style={{ letterSpacing: '-0.03em' }}>
+                      {s.title}
+                    </h3>
+                    <p
+                      className={`text-sm text-zinc-400 leading-relaxed max-w-md ${
+                        iconRight ? 'md:mr-auto' : 'md:ml-auto'
+                      } mx-auto`}
+                    >
+                      {s.desc}
+                    </p>
+                  </motion.div>
+
+                  {/* Big interactive icon */}
+                  <motion.div
+                    whileHover={{ scale: 1.06, rotate: iconRight ? 4 : -4 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="relative shrink-0"
+                  >
+                    <div
+                      className={`animate-node-pulse w-32 h-32 sm:w-40 sm:h-40 rounded-3xl glass-card ${s.ring} flex items-center justify-center ${s.tint} cursor-pointer`}
+                    >
+                      <PublicIcon name={s.icon} size={64} />
+                    </div>
+                    <div className={`absolute inset-0 -z-10 rounded-3xl ${s.glow} blur-2xl scale-110`} />
+                  </motion.div>
+                </motion.div>
+              );
+            })}
           </div>
         </section>
 
@@ -361,7 +416,7 @@ export function LandingPage() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="relative rounded-3xl bg-[#0c0c10] border border-zinc-800/80 p-8 sm:p-12 overflow-hidden"
+            className="glass-card relative rounded-3xl p-8 sm:p-12 overflow-hidden"
           >
             {/* Ambient glows */}
             <div className="absolute top-0 left-1/4 w-64 h-32 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
@@ -380,7 +435,8 @@ export function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1, duration: 0.4 }}
-                  className="space-y-1"
+                  whileHover={{ y: -4 }}
+                  className="space-y-1 cursor-default"
                 >
                   <div className={`text-3xl sm:text-4xl font-black font-mono ${stat.color}`} style={{ letterSpacing: '-0.04em' }}>
                     {stat.val}
@@ -393,7 +449,7 @@ export function LandingPage() {
         </section>
 
         {/* ── Why SOMNIX ────────────────────────────────────────────────── */}
-        <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+        <section id="why-somnix" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 scroll-mt-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -402,39 +458,44 @@ export function LandingPage() {
             className="text-center mb-12"
           >
             <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 mb-3 block">The edge</span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase" style={{ letterSpacing: '-0.04em' }}>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white" style={{ letterSpacing: '-0.04em' }}>
               Why SOMNIX?
             </h2>
-            <p className="mt-3 text-sm text-zinc-400 max-w-lg mx-auto leading-relaxed">
-              Most prediction platforms fight for your attention. SOMNIX is designed to give it back.
+            <p className="mt-3 font-serif text-lg sm:text-xl text-zinc-300 max-w-xl mx-auto leading-snug">
+              The question is small. The habit is loud. Most platforms make the habit
+              worse — SOMNIX is built to give your attention back.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {[
               {
-                icon: <EyeOff className="w-5 h-5 text-white" />,
+                icon: 'eye-off' as const,
                 title: 'No charts after lock',
                 desc: 'Once you commit, prices vanish. We remove the feed that causes impulsive reactions and second-guessing.',
-                glow: 'hover:border-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.04)]',
+                tint: 'text-white',
+                iconWrap: 'bg-white/[0.06] border-white/12',
               },
               {
-                icon: <ShieldCheck className="w-5 h-5 text-blue-400" />,
+                icon: 'shield' as const,
                 title: 'Hard cap on losses',
-                desc: 'The most you can ever lose on a call is the amount you locked — outcome tokens redeem for zero on the losing side, never more.',
-                glow: 'hover:border-blue-800/40 hover:shadow-[0_0_30px_rgba(59,130,246,0.06)]',
+                desc: 'The most you can ever lose on a call is the amount you locked — losing outcome tokens redeem for zero, never more.',
+                tint: 'text-blue-300',
+                iconWrap: 'bg-blue-400/[0.08] border-blue-400/20',
               },
               {
-                icon: <Zap className="w-5 h-5 text-emerald-400" />,
+                icon: 'bolt' as const,
                 title: 'Sub-second on-chain payouts',
-                desc: 'Somnia\'s 50,000 TPS throughput means your winnings land before a traditional blockchain even confirms.',
-                glow: 'hover:border-emerald-800/40 hover:shadow-[0_0_30px_rgba(52,211,153,0.08)]',
+                desc: "Somnia's high-throughput chain means your winnings land before a traditional blockchain even confirms a block.",
+                tint: 'text-emerald-300',
+                iconWrap: 'bg-emerald-400/[0.08] border-emerald-400/20',
               },
               {
-                icon: <ArrowRight className="w-5 h-5 text-red-400" />,
+                icon: 'target' as const,
                 title: 'One decision per window',
-                desc: 'Green or Red. That\'s the entire interface. No spreads, no leverage, no liquidations. Just one clean call.',
-                glow: 'hover:border-red-800/40 hover:shadow-[0_0_30px_rgba(239,68,68,0.06)]',
+                desc: "Green or Red. That's the entire interface. No spreads, no leverage, no liquidations. Just one clean call.",
+                tint: 'text-red-300',
+                iconWrap: 'bg-red-400/[0.08] border-red-400/20',
               },
             ].map((item, i) => (
               <motion.div
@@ -443,11 +504,14 @@ export function LandingPage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ delay: i * 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className={`group relative p-5 sm:p-6 rounded-2xl bg-[#0c0c10] border border-zinc-800/60 transition-all duration-300 flex gap-4 overflow-hidden ${item.glow}`}
+                whileHover={{ y: -5, scale: 1.015 }}
+                whileTap={{ scale: 0.99 }}
+                className="glass-card group p-5 sm:p-6 rounded-2xl flex gap-4 overflow-hidden cursor-default hover:border-white/25 transition-colors duration-300"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] to-transparent pointer-events-none" />
-                <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                  {item.icon}
+                <div
+                  className={`relative w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-300 ${item.iconWrap} ${item.tint}`}
+                >
+                  <PublicIcon name={item.icon} size={20} />
                 </div>
                 <div className="space-y-1.5">
                   <h3 className="text-sm font-bold text-white">{item.title}</h3>
@@ -465,7 +529,7 @@ export function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="relative rounded-3xl bg-[#0c0c10] border border-zinc-800 overflow-hidden p-10 sm:p-16 text-center"
+            className="glass-card relative rounded-3xl overflow-hidden p-10 sm:p-16 text-center"
           >
             {/* Big ambient glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[200px] bg-emerald-500/8 blur-[80px] rounded-full pointer-events-none" />
@@ -482,27 +546,27 @@ export function LandingPage() {
               </motion.div>
 
               <h2
-                className="text-3xl sm:text-4xl lg:text-5xl font-black text-white uppercase"
-                style={{ letterSpacing: '-0.05em' }}
+                className="text-3xl sm:text-4xl lg:text-5xl font-black text-white"
+                style={{ letterSpacing: '-0.045em' }}
               >
                 Ready to make{' '}
                 <span className="text-emerald-400">your call?</span>
               </h2>
-              <p className="text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
+              <p className="font-serif text-lg sm:text-xl text-zinc-300 max-w-md mx-auto leading-snug">
                 Connect your wallet and lock your first Green or Red in under 30 seconds.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <LiquidMetalButton onClick={openWalletModal} variant="silver" height={52} width={270}>
                   <div className="flex items-center justify-center gap-2 text-xs font-black text-black uppercase tracking-wider px-4">
-                    <Wallet className="w-4 h-4 shrink-0" />
+                    <PublicIcon name="wallet" size={16} />
                     <span>Connect Wallet to Trade</span>
-                    <ArrowRight className="w-4 h-4 shrink-0" />
+                    <PublicIcon name="arrow-right" size={16} />
                   </div>
                 </LiquidMetalButton>
                 <LiquidMetalButton onClick={enterAppInWatchMode} height={52} width={200}>
                   <div className="flex items-center justify-center gap-2 text-xs font-bold text-zinc-200 uppercase tracking-wider px-4">
-                    <Eye className="w-4 h-4 text-zinc-400 shrink-0" />
+                    <PublicIcon name="eye" size={16} className="text-zinc-400" />
                     <span>Watch Mode</span>
                   </div>
                 </LiquidMetalButton>
@@ -513,7 +577,7 @@ export function LandingPage() {
       </main>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="w-full border-t border-zinc-800/80 bg-[#07070a] pt-14 pb-10 text-zinc-400">
+      <footer className="w-full border-t border-white/[0.06] bg-[#07070a] pt-14 pb-10 text-zinc-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
             {/* Brand column */}
@@ -574,7 +638,7 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="pt-8 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-zinc-500">
+          <div className="pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-zinc-500">
             <div>© 2026 SOMNIX. Built for Somnia × DreamDEX Event Contracts.</div>
             <div className="text-center sm:text-right text-zinc-500 text-[10px]">
               No financial advice. Smart contracts deployed on Somnia Testnet.
@@ -585,5 +649,3 @@ export function LandingPage() {
     </div>
   );
 }
-
-

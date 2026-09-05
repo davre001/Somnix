@@ -128,22 +128,25 @@ function pickProvider(walletType?: string): Eip1193Provider | null {
   const win = window as unknown as Record<string, unknown>;
   const eth = win.ethereum as (Eip1193Provider & { providers?: Eip1193Provider[] }) | undefined;
 
-  if (walletType === 'coinbase' && win.coinbaseWalletExtension) {
-    return win.coinbaseWalletExtension as Eip1193Provider;
-  }
-  if (walletType === 'okx' && win.okxwallet) {
-    return win.okxwallet as Eip1193Provider;
-  }
+  // Phantom exposes its EVM provider on a dedicated namespace.
   if (walletType === 'phantom' && (win.phantom as Record<string, unknown>)?.ethereum) {
     return (win.phantom as Record<string, unknown>).ethereum as Eip1193Provider;
   }
-  if (walletType === 'trust' && win.trustwallet) {
-    return win.trustwallet as Eip1193Provider;
-  }
   if (eth) {
+    // Multiple extensions injected: window.ethereum.providers holds them all.
     if (Array.isArray(eth.providers)) {
-      if (walletType === 'metamask') return eth.providers.find((p) => p.isMetaMask) || eth;
-      if (walletType === 'coinbase') return eth.providers.find((p) => p.isCoinbaseWallet) || eth;
+      if (walletType === 'metamask') {
+        // Rabby also sets isMetaMask for compatibility, so exclude it explicitly.
+        return (
+          eth.providers.find((p) => p.isMetaMask && !(p as { isRabby?: boolean }).isRabby) || eth
+        );
+      }
+      if (walletType === 'rabby') {
+        return eth.providers.find((p) => (p as { isRabby?: boolean }).isRabby) || eth;
+      }
+      if (walletType === 'phantom') {
+        return eth.providers.find((p) => (p as { isPhantom?: boolean }).isPhantom) || eth;
+      }
       return eth;
     }
     return eth;
