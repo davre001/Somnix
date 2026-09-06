@@ -1,5 +1,11 @@
 # SOMNIX
 
+<div align="center">
+
+<img src="assets/cover.png" alt="SOMNIX — Call the candle. Hide the chart." width="100%" />
+
+</div>
+
 [![Live on Vercel](https://img.shields.io/badge/Live-somnix--iota.vercel.app-000000?style=flat&logo=vercel&logoColor=white)](https://somnix-iota.vercel.app)
 [![Somnia Testnet](https://img.shields.io/badge/Somnia-Shannon%20Testnet-8B5CF6?style=flat)](https://shannon-explorer.somnia.network)
 [![Chain ID](https://img.shields.io/badge/Chain%20ID-50312-22C55E?style=flat)](https://shannon-explorer.somnia.network)
@@ -15,6 +21,54 @@
 **Lock one call for this window. Hide the price. See the result when the timer ends.**
 
 Built for the Somnia × DreamDEX Event Contracts Hackathon.
+
+---
+
+## Watch the demo
+
+<div align="center">
+
+**[ ▶ Demo video — coming soon ]**
+
+</div>
+
+---
+
+## Judge this in 90 seconds
+
+**Live app:** [somnix-iota.vercel.app](https://somnix-iota.vercel.app) — the full product, including watch mode (no wallet needed to see the core loop).
+
+| | |
+|---|---|
+| **1 tap** | to lock a real on-chain position — no order book, no leverage, no chart during the window |
+| **133 tests** | in CI on every push/PR — `lint`, `typecheck`, `test`, `build` as four separate jobs |
+| **2 real bugs** | found and fixed via *reproduced* testnet transactions this build, not code review alone (see [Tested against reality](#tested-against-reality-not-vibes) below) |
+| **0 fabricated numbers** | every price, odds, and payout the UI shows is backed by a live on-chain or indexer read — see the [Architecture](#architecture) trust boundary |
+
+```bash
+git clone https://github.com/davre001/Somnix.git && cd Somnix
+pnpm install
+pnpm dev                                # http://localhost:3000 — watch mode needs nothing else
+pnpm lint && pnpm typecheck && pnpm test && pnpm build   # what CI actually runs
+```
+
+To try a real lock/claim instead of watch mode: connect a wallet on Somnia Shannon testnet, get STT for gas (wallet-menu link) and test collateral (in-app **+Faucet**), then pick any live BTC/ETH window.
+
+---
+
+## Table of contents
+
+- [Watch the demo](#watch-the-demo)
+- [What is SOMNIX](#what-is-somnix)
+- [Tested against reality, not vibes](#tested-against-reality-not-vibes)
+- [The problem](#the-problem)
+- [The solution we offer](#the-solution-we-offer)
+- [Architecture](#architecture)
+- [How SOMNIX integrates with DreamDEX & Somnia](#how-somnix-integrates-with-dreamdex--somnia)
+- [Honesty: limitations](#honesty-limitations)
+- [How to run](#how-to-run)
+- [Roadmap](#roadmap)
+- [Attribution](#attribution)
 
 ---
 
@@ -36,6 +90,67 @@ Come back at 0:00 to see if you were right, and claim if you won.
 
 No order book to read. No leverage. No exchange jargon. You can only ever lose
 what you put in.
+
+---
+
+## Tested against reality, not vibes
+
+Two real bugs in this build were found by reproducing a transaction against a
+live testnet wallet and a live order book — not by reading the code and
+deciding it looked right. Both are fixed in the current code; the numbers
+below are what the *unfixed* version actually did, captured from real runs.
+
+**Bug 1 — a claim that could never succeed.** `frontend/scripts/live-cycle.mjs`
+(a real, funded testnet wallet, `live:`-prefixed so it never runs in CI) locked
+5 tUSDC on a real BTC 1h window (fill price `0.843`, tx `0x5ade91...`), the
+window resolved Green on-chain, and the position was claimed for a real payout
+(tx `0xbd67ef...`) — collateral balance moved `10,000 → 10,000.965` tUSDC,
+exactly the expected 1:1 redemption. Getting that claim to succeed at all
+surfaced a real bug first: the SDK's unified `exchange.redeem()` resolves a
+market through its live-markets registry, which excludes already-resolved
+markets by design — so the original claim path threw `"unknown market ref"`
+on every real claim, no matter how many times `loadMarkets()` was called
+first. Fixed by reading the market directly by id and calling the raw
+`trader.redeem()` instead, bypassing the registry entirely
+(`exchange.ts#claimWinnings`).
+
+**Bug 2 — a lock that risked less than it showed.** `frontend/scripts/verify-order-amount-semantics.mjs`
+places one real market order against the live SDK's unified `createOrder(...)`
+call and diffs the wallet's real collateral balance before/after. The SDK
+treats `amount` as a **token quantity**, not collateral. Reproduced twice, on
+different days and at different live prices — same conclusion both times:
+
+```text
+Wallet: 0xEE993d1C41f74faD3cddAf59E9cdc30b5a80fa42
+
+Placing MARKET BUY: amount=5 on BTC-7990246-06SEP26-2135/tUSDC#YES...
+Order result: {
+  txHash: '0x4fa81241cc1eeabd71d9d3a661d8aeeae882a5e2b95fbca3bc41456fbaf182bf',
+  filled: 5,
+  price: 0.602,
+  cost: undefined,
+  amount: 5
+}
+
+--- Collateral (tUSDC) ---
+Before: 19998.39 | After: 19995.47 | Spent: 2.920000
+Hypothesis A (amount == collateral spent): expected 5, actual 2.920000, match = false
+```
+
+Requesting `amount=5` filled exactly 5 tokens and spent **$2.92** real
+collateral — not $5. (An earlier run at a different live price spent $2.575
+for the same `amount=5` — the token count matches every time, the dollar
+figure never does.) A user who typed "lock $10" was silently risking whatever
+`10 × price` happened to be at that moment, while the UI displayed "Lock
+Amount: 10" as if the full $10 were at stake. Fixed by sizing every lock
+through the SDK's own `quoteBinaryStake` (walks the real book so escrow
+never exceeds the requested stake) before placing the order
+(`exchange.ts#lockPosition`).
+
+Both scripts are still in the repo and still runnable against a funded
+testnet wallet — the claim is falsifiable, not just asserted. See
+[`docs/API_NOTES.md`](docs/API_NOTES.md) §1/§1a for the full write-up of each,
+including the exact SDK behavior that caused them.
 
 ---
 
@@ -274,6 +389,44 @@ right before any spend.
 
 ---
 
+## Honesty: limitations
+
+Stated plainly, not left for a reviewer to find:
+
+- **Testnet only.** SOMNIX runs on Somnia Shannon testnet (chain `50312`),
+  not mainnet — Event Contracts themselves aren't on mainnet yet.
+- **No real settlement/closing price is available from this venue's oracle.**
+  The SDK exposes `openingAnswer`/`closingAnswer` for exactly this, but both
+  came back `null` on every one of 11 real samples checked. RevealPanel shows
+  "—" for Settlement Price rather than fabricate one — win/lose is still
+  decided correctly by the real on-chain `winningOutcome`, never by a price
+  comparison in this app.
+- **History (Recents) is local-only, per-device.** A pending-lock intent is
+  reconciled against the real chain the next time a signer binds on *this*
+  browser — a user who never reopens SOMNIX on the same device after a
+  dropped connection won't see it recovered in the UI, even though the
+  on-chain position itself is fine.
+- **The backend history mirror doesn't re-derive exact fill numbers from
+  the chain** — it verifies the transaction is real and sent by the claimed
+  wallet, not that the reported `filledAmount`/`fillPrice` exactly matches
+  the decoded fill. The UI now labels this "self-reported" in Recents. This
+  never affects a real claim, which always re-checks the live chain.
+- **Rate limiting is in-memory, per-instance, not distributed** — bounds a
+  single serverless instance against naive hammering, not a coordinated
+  attack across instances.
+- **The DreamDEX indexer has measurable, intermittent latency/outages** —
+  reproduced directly against the live indexer this build (a plain market
+  query timing out with a `504` while the same endpoint answered a trivial
+  query in under a second). This is an external dependency's behavior, not
+  something this app controls; it's why lock/claim errors are surfaced as
+  an honest "try again shortly" rather than swallowed or retried silently.
+
+Full detail on every gap above, plus what's explicitly *not* defended against,
+in [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) and
+[`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
+
+---
+
 ## How to run
 
 ```bash
@@ -313,6 +466,24 @@ app and a live window — no wallet.**
   is a network switch plus a hardening pass, not a rewrite.
 - **Deeper accessibility and i18n** so the "one calm decision" experience reads
   the same for everyone.
+
+---
+
+## Attribution
+
+**Protocol** — [DreamDEX Event Contracts](https://docs.dreamdex.io/developers/event-contracts)
+run the real markets, prices, and settlement; SOMNIX builds none of that
+itself. Accessed via [`@somnia-chain/markets-sdk`](https://www.npmjs.com/package/@somnia-chain/markets-sdk).
+
+**Chain** — [Somnia](https://somnia.network) Shannon testnet.
+
+**Framework** — [Next.js](https://nextjs.org) (MIT), [React](https://react.dev) (MIT),
+[Tailwind CSS](https://tailwindcss.com) (MIT), [viem](https://viem.sh) (MIT).
+
+**Persistence** — [Turso](https://turso.tech) (libSQL) for the read-only history mirror.
+
+**Agent** — built with [Claude Code](https://claude.ai/code), including the
+empirical bug-finding described in [Tested against reality](#tested-against-reality-not-vibes) above.
 
 See [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) for what is explicitly not
 handled yet, and [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for trust
