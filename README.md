@@ -8,6 +8,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![viem](https://img.shields.io/badge/viem-onchain-F9A03C?style=flat)](https://viem.sh)
+[![CI](https://github.com/davre001/Somnix/actions/workflows/ci.yml/badge.svg)](https://github.com/davre001/Somnix/actions/workflows/ci.yml)
 
 **Live: [somnix-iota.vercel.app](https://somnix-iota.vercel.app)** — Somnia Shannon testnet.
 
@@ -28,10 +29,10 @@ simple on-chain market:
 - **Red (Down)** — the coin finishes below that start price
 
 SOMNIX turns that market into a single **decision**, not a trading screen. You
-pick BTC or ETH, choose Green or Red and an amount, and tap once. Your stake
-buys the real outcome token on-chain. Then the live price disappears until the
-window ends — so you stop refreshing the chart. Come back at 0:00 to see if you
-were right, and claim if you won.
+pick BTC or ETH, choose Green or Red and a stake, and tap once. Your stake
+buys the real outcome token on-chain, priced live by the order book. Then the
+price disappears until the window ends — so you stop refreshing the chart.
+Come back at 0:00 to see if you were right, and claim if you won.
 
 No order book to read. No leverage. No exchange jargon. You can only ever lose
 what you put in.
@@ -62,13 +63,29 @@ you cannot put the phone down.**
 - **A hard cap:** the most you can lose is the amount you chose. No leverage,
   nothing to liquidate.
 - **Claim is part of the flow.** Winnings don't appear by magic — when your side
-  wins on-chain, you claim ~1.92× in one tap.
+  wins on-chain, you claim in one tap, at whatever the live order book actually
+  priced when you locked. Never a fabricated or fixed number.
 - **Same again** on the next window, so you never have to hunt for a new market.
 - **Watch mode** for people who aren't ready to connect a wallet.
 - **Friend card** so a new person understands the same question in one screen.
 
 DreamDEX runs the real market and the real payout rules. SOMNIX is the calm
 decision layer on top.
+
+### Built-in guardrails, not just a game
+
+The habit SOMNIX is fighting doesn't stop at one window, so neither do the
+protections:
+
+- **Session budget** — an optional, self-set cap on total collateral locked in
+  one sitting. Once you hit it, locking is blocked until you raise it or reset.
+- **Loss-streak cooldown** — after 3 losses in a row, the next lock attempt
+  shows a soft, dismissible "take a break?" prompt instead of firing
+  immediately. It's the one feature here that works *against* short-term
+  volume on purpose.
+- **Structured pre-lock checklist** — every gating condition (live market,
+  time left, amount, balance, session budget, duplicate window) shown at once,
+  not a single disabled button with a vague tooltip.
 
 ### The four screens
 
@@ -77,7 +94,7 @@ decision layer on top.
 | **Home** — "This window" | Coin, window length, time left, live Green/Red odds, amount buttons, and the two big Green/Red buttons. Understand the question and lock a call. |
 | **Locked** — "Put the phone down" | Your side, amount, and a countdown. **No live chart, no live price.** This screen *is* the product. |
 | **Reveal + Claim** — "What happened" | Start price vs. result, win/lose, and a one-tap **Claim** for winners. Then *Same again* on the next window. |
-| **Recents + Share** — "How you did" | Your last few windows as a score, plus **share a friend card**. |
+| **Recents + Share** — "How you did" | Your last few windows as a score — wins *and* losses — plus **share a friend card**. |
 
 Watch mode uses Home + Recents only — no wallet, no tap, no claim.
 
@@ -110,8 +127,9 @@ trust level:
 3. **Server history mirror** (`app/api/lock/*`, `app/api/claim/*`, Turso-backed;
    posted from `lib/history.ts`) — receives a report only *after* the browser
    already holds a confirmed on-chain result, and every write is verified
-   against a real receipt (`lib/server/chainVerify.ts`) before being stored.
-   Holds no funds, no keys, no accounts, and gates nothing.
+   against a real receipt (`lib/server/chainVerify.ts`) and a well-formed
+   wallet address (`lib/server/validators.ts`) before being stored. Holds no
+   funds, no keys, no accounts, and gates nothing.
 
 `docs/API_NOTES.md` is the source of truth for the endpoint-by-endpoint API
 surface and every external dependency's measured failure modes.
@@ -128,17 +146,25 @@ frontend/
         lock/, claim/            #   mirror a client-confirmed action into Turso
       trade/, locked/, reveal/, recents/   # The four pages
       layout.tsx, page.tsx, globals.css
-    components/                  # UI (LandingPage, MarketWindow, WalletModal, ...)
+    components/                  # UI — LandingPage, WalletModal, LockChecklist,
+                                  #   SessionBudget, LossStreakPrompt, RecentsList, ...
     lib/
       exchange.ts                # Browser SDK client — the ONLY piece that moves money
       somnia.ts                  # Chain config + collateral token reads
-      marketService.ts           # Pending-lock-intent persistence, market fetch/display
+      marketService.ts           # Local persistence: pending-lock intents, recents, session budget
       history.ts                 # Fire-and-forget POSTs to the history mirror
-      useSomnix.tsx              # App state, wallet binding, pending-lock reconciliation
+      useSomnix.tsx              # Thin context composing the hooks below
+      hooks/
+        useWallet.ts              #   provider connection, network switch, faucet
+        useMarket.ts               #   window selection + live (WebSocket) market feed
+        useLock.ts                 #   lock validation, execution, session budget, reconciliation
+        useClaim.ts                #   claim lifecycle + recents / loss-streak history
       server/
-        dreamdex.ts              # Server-side indexer read (display proxy only)
-        chainVerify.ts           # Verifies a reported tx really confirmed on-chain
-        tursoStore.ts            # Turso (libSQL) persistence for the history mirror
+        dreamdex.ts               # Server-side indexer read (display proxy only)
+        chainVerify.ts             # Verifies a reported tx really confirmed on-chain
+        validators.ts              # Strict wallet-address validation for the history mirror
+        rateLimit.ts               # Per-IP, per-route rate limiting for app/api/*
+        tursoStore.ts              # Turso (libSQL) persistence for the history mirror
   .env.example
 docs/
   API_NOTES.md                   # Measured behavior of every external API
@@ -151,11 +177,30 @@ docs/
 
 - **App:** Next.js 16 + TypeScript (strict), Tailwind CSS v4, framer-motion.
 - **Chain:** Somnia Shannon testnet (Chain ID `50312`), `viem` for wallet + RPC.
-- **Markets:** `@somnia-chain/markets-sdk` (≥ 0.28.0) — Event Contracts (Up/Down
-  windows) and the DreamDEX Hasura indexer for listing. The testnet chain and
-  contract addresses are imported straight from the SDK (`somniaShannon`,
+- **Markets:** [`@somnia-chain/markets-sdk`](https://www.npmjs.com/package/@somnia-chain/markets-sdk),
+  pinned to an exact version (`0.28.1`, not a caret range — a young SDK
+  deserves a deliberate bump, not a silent one) — Event Contracts (Up/Down
+  windows) and the DreamDEX Hasura indexer for listing. Live odds and market
+  state ride the SDK's own WebSocket tail straight to Somnia's chain RPC
+  (`watchMarkets`), not REST polling. The testnet chain and contract addresses
+  are imported straight from the SDK (`somniaShannon`,
   `SOMNIA_TESTNET_ADDRESSES`), not env vars.
 - **Persistence:** Turso (libSQL over HTTP) for the read-only history mirror.
+
+### Quality & reliability
+
+- **133 tests** across lib, hooks, and components (React Testing Library),
+  including a full mocked-SDK lock → resolve → claim integration test — run in
+  CI on every push and PR, not just locally.
+- **Four independent CI jobs** (`lint`, `typecheck`, `test`, `build`) —
+  `.github/workflows/ci.yml` — a green check means the whole app actually
+  builds and passes, not just one slice of it.
+- **Per-IP rate limiting** on every state-changing and read API route.
+- Every external dependency's *measured* (not assumed) behavior — including
+  real indexer failure modes reproduced against live testnet — is written down
+  in [`docs/API_NOTES.md`](docs/API_NOTES.md), with known gaps kept current in
+  [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) rather than left for a reviewer
+  to find.
 
 ---
 
@@ -182,7 +227,7 @@ flowchart TD
     end
 
     subgraph Chain["⛓️ Somnia + DreamDEX"]
-      RPC["Somnia RPC<br/>(sub-second finality)"]
+      RPC["Somnia RPC<br/>(sub-second finality + live WebSocket tail)"]
       IDX["DreamDEX Hasura indexer"]
       EC["Event Contracts<br/>(Up/Down windows, oracle settle)"]
     end
@@ -197,8 +242,9 @@ flowchart TD
     UI -->|"tap Green / Red · Claim"| EX
     W -->|"signs tx"| EX
     EX -->|"re-check window open,<br/>buy Up/Down (IOC), redeem"| EC
-    EX -->|"read state, odds, resolution"| IDX
-    EX -->|"balances, receipts"| RPC
+    EX -->|"live WebSocket tail:<br/>odds, order book"| RPC
+    EX -->|"balances, tx receipts"| RPC
+    EX -->|"registry, resolution details"| IDX
 
     %% History mirror (after confirmation)
     EX -.->|"report confirmed result"| MIRROR
@@ -215,10 +261,10 @@ flowchart TD
 | "BTC this hour" | A live Up/Down window for BTC |
 | Timer | Official end time of that window |
 | 58% Green | Price on the live order book (a number between 0 and 1) |
-| You tap Green / Red | The app **buys Up / Down** for you, right now (IOC — fill now, leave no resting order) |
+| You tap Green / Red | The app sizes a real **stake** against the live book and **buys Up / Down** for you, right now (IOC — fill now, leave no resting order) |
 | Locked call | You hold a result token for that window |
 | Window ends | DreamDEX's oracle compares the real end price to the start price |
-| Claim | The app redeems a winning token back into your funds |
+| Claim | The app redeems your winning tokens back into your funds, 1:1 |
 | Same again | The app loads the **next** live window for that coin and length |
 
 SOMNIX does **not** build its own betting system — it uses DreamDEX Event
@@ -244,20 +290,22 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 Only `NEXT_PUBLIC_DREAMDEX_INDEXER_URL` (public, defaults to the real testnet
 indexer) is a client-side value; `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN`
 (server-only) back the history mirror. To run a real end-to-end lock and claim
-you'll also need a browser wallet on Somnia testnet, test funds from the
-hackathon faucet, and at least one live BTC or ETH window. **Watch mode needs
-only the app and a live window — no wallet.**
+you'll also need a browser wallet on Somnia testnet, STT for gas (the wallet
+menu links Somnia's official faucet), test collateral (the in-app **+Faucet**
+button), and at least one live BTC or ETH window. **Watch mode needs only the
+app and a live window — no wallet.**
 
 ---
 
-## Future plans
+## Roadmap
 
+- **A public leaderboard** on top of the session-budget / loss-streak data
+  that already exists — "best streak this week," display-only, still backed
+  by on-chain reads. The natural next step after the guardrails above.
 - **More assets and window lengths** beyond BTC/ETH as DreamDEX lists them,
   surfaced automatically from the live registry rather than hard-coded.
 - **Richer friend cards** — animated, per-result share cards and deep links that
   drop a friend straight onto the exact window you called.
-- **A streak / score layer** on top of Recents: personal history, win streaks,
-  and light seasonal leaderboards — display-only, still backed by on-chain reads.
 - **Push-style reveal reminders** so you get a nudge exactly at 0:00 instead of
   having to remember the window yourself.
 - **Mainnet readiness** once Event Contracts move to Somnia mainnet — the

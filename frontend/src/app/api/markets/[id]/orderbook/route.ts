@@ -11,4 +11,4 @@ export const GET = apiRoute(async (_req, { params }) => {
     console.error(`[${new Date().toISOString()}] [ERROR] Failed to load order book for market ${id}:`, message);
     return apiError(502, 'Failed to load order book from DreamDEX indexer', { marketId: id, detail: message });
   }
-});
+}, { scope: 'markets-orderbook', limit: 30 });

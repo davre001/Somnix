@@ -1,5 +1,6 @@
 import 'server-only';
 import { NextResponse } from 'next/server';
+import { checkRateLimit, getClientKey } from './rateLimit';
 
 const DEFAULT_MAX_BYTES = 32 * 1024;
 
@@ -49,14 +50,29 @@ export function apiError(status: number, error: string, details?: Record<string,
 
 type RouteHandler = (req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
 
+export interface RateLimitOptions {
+  /** Namespaces the limiter key so routes never share a bucket, even from the same caller. */
+  scope: string;
+  limit: number;
+  windowMs?: number;
+}
+
 /**
  * Wraps a route handler so nothing async it throws is ever left unhandled —
  * the equivalent of Express's asyncHandler + the shared errorHandler
  * middleware, collapsed into one place since there's no middleware chain here.
+ * An optional `rateLimit` applies a per-IP, per-route request cap before the
+ * handler ever runs — see `lib/server/rateLimit.ts`.
  */
-export function apiRoute(handler: RouteHandler): RouteHandler {
+export function apiRoute(handler: RouteHandler, rateLimit?: RateLimitOptions): RouteHandler {
   return async (req, ctx) => {
     try {
+      if (rateLimit) {
+        const key = `${rateLimit.scope}:${getClientKey(req)}`;
+        if (!checkRateLimit(key, rateLimit.limit, rateLimit.windowMs)) {
+          return apiError(429, 'Too many requests — slow down and try again shortly');
+        }
+      }
       return await handler(req, ctx);
     } catch (err) {
       if (err instanceof PayloadTooLargeError) {

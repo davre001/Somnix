@@ -6,6 +6,7 @@ import '@fontsource/source-code-pro/700.css';
 import './globals.css';
 import { inter, instrumentSerif } from './fonts';
 import { SomnixProvider } from '@/lib/useSomnix';
+import { SomniaLiveProvider } from '@/components/SomniaLiveProvider';
 import { ParticleWave } from '@/components/ui/particle-wave';
 
 export const metadata: Metadata = {
@@ -38,11 +39,13 @@ export default function RootLayout({
         {/* Three.js 3D Undulating Particle Wave Background (30% opacity) */}
         <ParticleWave className="opacity-30" />
 
-        <SomnixProvider>
-          <div className="w-full min-h-screen flex flex-col relative z-10">
-            {children}
-          </div>
-        </SomnixProvider>
+        <SomniaLiveProvider>
+          <SomnixProvider>
+            <div className="w-full min-h-screen flex flex-col relative z-10">
+              {children}
+            </div>
+          </SomnixProvider>
+        </SomniaLiveProvider>
       </body>
     </html>
   );

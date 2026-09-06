@@ -34,7 +34,8 @@ export interface LockRequest {
   filledAmount: number;
   /** Real average price paid per outcome token (0-1). */
   fillPrice: number;
-  walletAddress?: string | null;
+  /** Required — verified server-side against the txHash's real on-chain sender. */
+  walletAddress: string;
   /** Real on-chain market expiry (ms), not the app's locally-computed window bound. */
   hidePriceUntil: number;
   txHash: string;
@@ -58,7 +59,8 @@ export interface LockRecord {
 
 export interface ClaimRequest {
   lockId: string;
-  walletAddress?: string | null;
+  /** Required — verified server-side against the txHash's real on-chain sender. */
+  walletAddress: string;
   /** Real outcome tokens redeemed (should match the lock's filledAmount). */
   filledAmount: number;
   txHash: string;

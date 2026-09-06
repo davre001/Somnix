@@ -13,8 +13,12 @@ export type TxVerification = { ok: true } | { ok: false; reason: string };
  * price claimed alongside it. SOMNIX's backend history is a best-effort
  * mirror — the real authorization for a claim is always the on-chain
  * redeem call itself.
+ *
+ * `walletAddress` is required and the sender check is never skipped —
+ * callers must reject a request that has no validated wallet address before
+ * ever calling this, rather than passing one through as absent.
  */
-export async function verifyOnChainTx(txHash: string, walletAddress?: string | null): Promise<TxVerification> {
+export async function verifyOnChainTx(txHash: string, walletAddress: string): Promise<TxVerification> {
   if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
     return { ok: false, reason: 'txHash is not a well-formed transaction hash' };
   }
@@ -26,7 +30,7 @@ export async function verifyOnChainTx(txHash: string, walletAddress?: string | n
       return { ok: false, reason: 'transaction did not succeed on-chain' };
     }
 
-    if (walletAddress && receipt.from.toLowerCase() !== walletAddress.toLowerCase()) {
+    if (receipt.from.toLowerCase() !== walletAddress.toLowerCase()) {
       return { ok: false, reason: 'transaction sender does not match the reported wallet address' };
     }
 

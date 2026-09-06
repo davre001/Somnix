@@ -73,7 +73,7 @@ export interface LockResultReason {
 /**
  * Persisted BEFORE a lock order is sent to the wallet — so a tab close/crash
  * between the wallet confirming and the app recording the fill isn't a silently
- * lost position. See useSomnix#reconcilePendingLock.
+ * lost position. See lib/hooks/useLock.ts#reconcilePendingLock.
  */
 export interface PendingLockIntent {
   id: string;

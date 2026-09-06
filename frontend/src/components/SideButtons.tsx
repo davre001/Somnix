@@ -7,16 +7,23 @@ import { MarketSide } from '@/lib/types';
 import { describeExchangeError } from '@/lib/exchange';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
 import { ArrowUpRight, ArrowDownRight, Loader2, AlertCircle } from 'lucide-react';
+import { LossStreakPrompt } from '@/components/LossStreakPrompt';
+
+const LOSS_STREAK_COOLDOWN_THRESHOLD = 3;
 
 export function SideButtons() {
   const router = useRouter();
-  const { lockValidation, executeLock, wallet, openWalletModal } = useSomnix();
+  const { lockValidation, executeLock, wallet, openWalletModal, lossStreak } = useSomnix();
   const [submittingSide, setSubmittingSide] = useState<MarketSide | null>(null);
   const [lockError, setLockError] = useState<string | null>(null);
+  // Which losing streak the user has already clicked "Continue anyway" past —
+  // re-prompts if the streak grows further (e.g. 3 -> 4), never re-prompts
+  // for the same streak twice, and stops mattering the moment a win resets
+  // lossStreak to 0.
+  const [acknowledgedStreak, setAcknowledgedStreak] = useState(0);
+  const [pendingSide, setPendingSide] = useState<MarketSide | null>(null);
 
-  const handleLock = async (side: MarketSide) => {
-    if (!lockValidation.canLock || submittingSide) return;
-
+  const doLock = async (side: MarketSide) => {
     try {
       setSubmittingSide(side);
       setLockError(null);
@@ -33,6 +40,24 @@ export function SideButtons() {
       setSubmittingSide(null);
     }
   };
+
+  const handleLock = (side: MarketSide) => {
+    if (!lockValidation.canLock || submittingSide) return;
+    if (lossStreak >= LOSS_STREAK_COOLDOWN_THRESHOLD && lossStreak !== acknowledgedStreak) {
+      setPendingSide(side);
+      return;
+    }
+    void doLock(side);
+  };
+
+  const handleContinueAnyway = () => {
+    setAcknowledgedStreak(lossStreak);
+    const side = pendingSide;
+    setPendingSide(null);
+    if (side) void doLock(side);
+  };
+
+  const handleTakeBreak = () => setPendingSide(null);
 
   if (wallet.isWatchMode) {
     return (
@@ -60,6 +85,9 @@ export function SideButtons() {
 
   return (
     <div className="w-full space-y-2">
+      {pendingSide && (
+        <LossStreakPrompt streak={lossStreak} onContinue={handleContinueAnyway} onDismiss={handleTakeBreak} />
+      )}
       <div className="w-full grid grid-cols-2 gap-2.5 sm:gap-4 pt-1">
       {/* Green Button with 3D Liquid Metal Shader */}
       <LiquidMetalButton

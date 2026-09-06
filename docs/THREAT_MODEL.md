@@ -18,7 +18,7 @@ This document outlines the trust boundaries, threat vectors, security guarantees
        ▲                        ▼            Somnia RPC to confirm the reported
        │ Direct indexer +  [ Turso/libSQL (locks/claims) ]  txHash is real, mined, and
        │ chain reads/writes                                  sent by the reported wallet
-       │ (loadMarkets, createOrder, redeem, faucet, getResolution)
+       │ (loadMarkets, quoteBinaryStake, placeOrder, redeem, faucet, getResolution)
        │                        [ DreamDEX Hasura Indexer ]
        └──────────────────────────────┘
 ```
@@ -37,8 +37,10 @@ best-effort history mirror (`lib/history.ts` → `POST /api/lock` /
 See `docs/API_NOTES.md` §0 for why this isn't a separate backend service.
 
 ### Trusted Components
-1. **User's Wallet**: MetaMask, Coinbase, Rainbow, OKX, Phantom, or an
-   injected EVM provider — the only thing that can produce a valid signature.
+1. **User's Wallet**: MetaMask, Rabby, Phantom, or an injected EVM provider —
+   the only thing that can produce a valid signature. (`useWallet.ts#pickProvider`
+   is the actual provider-detection surface; it disambiguates Rabby from
+   MetaMask, since Rabby also sets `isMetaMask` for compatibility.)
 2. **Somnia Testnet Consensus & RPC**: Block ordering, transaction validation,
    smart contract execution.
 3. **DreamDEX Smart Contracts**: outcome-token minting/trading, settlement,
@@ -96,7 +98,7 @@ See `docs/API_NOTES.md` §0 for why this isn't a separate backend service.
     persisted to `localStorage` **before** the wallet prompt
     (`marketService.ts#savePendingLockIntent`), not after the order resolves.
   - The next time a signer binds (fresh connect, or a reload rehydrating an
-    existing session), `useSomnix.tsx#reconcilePendingLock` checks the real
+    existing session), `lib/hooks/useLock.ts#reconcilePendingLock` checks the real
     on-chain outcome-token balance for that market (`exchange.ts#checkFilledAmount`)
     and recovers the lock if it actually filled, or discards the intent if it
     didn't.
@@ -128,9 +130,12 @@ See `docs/API_NOTES.md` §0 for why this isn't a separate backend service.
     resolved and the wallet's locked side actually won (or the market
     voided, which redeems either side at par per the protocol's own
     settlement rules).
-  - The redeem call itself (`ex.redeem`) is a real on-chain call against the
-    `BinarySettlement` contract; a claim for a non-winning position would
-    also revert on-chain even if the client-side gate were somehow bypassed.
+  - The redeem call itself (raw-tier `trader.redeem()` — `claimWinnings`
+    deliberately bypasses the unified `exchange.redeem()`, which excludes
+    finalized markets from its registry; see `docs/DREAMDEX_AND_SOMNIA.md` §5)
+    is a real on-chain call against the `BinarySettlement` contract; a claim
+    for a non-winning position would also revert on-chain even if the
+    client-side gate were somehow bypassed.
 
 ### Threat 5: Expired Window / Late Execution
 - **Risk**: An order is broadcast near a window's expiry and lands after
@@ -164,6 +169,19 @@ See `docs/API_NOTES.md` §0 for why this isn't a separate backend service.
   action: claiming still requires the real on-chain redeem call, which
   reverts on-chain for a non-winning or already-claimed position regardless
   of what SOMNIX's own Turso store says.
+  - `walletAddress` is a **required**, format-validated (`/^0x[0-9a-fA-F]{40}$/`)
+    field on both `/api/lock` and `/api/claim` (`lib/server/validators.ts#validateWalletAddress`),
+    and `verifyOnChainTx` (`lib/server/chainVerify.ts`) always checks it
+    against the tx receipt's real `from` address — this check can no longer
+    be skipped by omitting the field. Previously `walletAddress` was optional
+    and the sender-match check inside `verifyOnChainTx` was itself
+    conditional on it being present (`if (walletAddress && ...)`), so a
+    request that omitted it entirely bypassed the sender check altogether —
+    any real, successful txHash on Somnia testnet (not necessarily the
+    caller's own) could be replayed into a spoofed history row with no
+    ownership check at all. Fixed: both routes now reject a request with a
+    missing/malformed `walletAddress` before ever calling `verifyOnChainTx`,
+    and the function's signature no longer accepts an absent one.
 
 ---
 
@@ -174,14 +192,22 @@ See `docs/API_NOTES.md` §0 for why this isn't a separate backend service.
   protocol's own contracts and oracle as given; it has no independent
   verification of settlement correctness beyond reading the contract's own
   state.
-- **No rate limiting or abuse protection on the server routes.** Neither the
-  display proxy nor `/api/lock`/`/api/claim` are rate-limited. The blast
-  radius stays bounded (wasted indexer/RPC requests, or junk rows in a
-  non-authoritative history table — see Threat 7), but it isn't hardened
-  against being hammered.
+- **Rate limiting is best-effort and in-memory, not distributed.**
+  `lib/server/rateLimit.ts` applies a per-IP, per-route fixed-window cap
+  (`/api/lock`, `/api/claim` at 10/min; the read/display routes at 20-30/min)
+  via `getClientKey`, which trusts the `x-forwarded-for`/`x-real-ip` proxy
+  headers — there is no raw socket address available in a Next.js `Request`.
+  This bounds a single serverless instance's exposure to a naive hammering
+  script; it is **not** a shared/global limit — a cold start or a second
+  concurrent instance gets its own independent counter, so a caller spread
+  across enough instances (or that varies its forwarded-for header) isn't
+  actually capped. A shared store (Upstash/Redis) would be needed for that;
+  out of scope for a hackathon-tier deploy. The blast radius stays bounded
+  either way (wasted indexer/RPC requests, or junk rows in a
+  non-authoritative history table — see Threat 7).
 - **No exact-fill verification on reported history** (Threat 7) — a
   deliberate scope line, not an oversight; see that threat's mitigation.
-- **No formal review of the wiring in `exchange.ts`/`useSomnix.tsx` has been
+- **No formal review of the wiring in `exchange.ts`/`lib/hooks/*` has been
   performed** (contract-call construction, error-message content, the
   reconciliation logic above) — see `docs/LIMITATIONS.md` for what's been
   verified vs. not.
@@ -192,11 +218,26 @@ See `docs/API_NOTES.md` §0 for why this isn't a separate backend service.
    never reopens SOMNIX on the same browser after an ambiguous failure will
    never see it recovered in the UI, even though the on-chain position is
    fine.
-2. `lockPosition`'s slippage tolerance (3%) is a fixed guess, not tuned
-   against real observed book depth/volatility.
-3. The full trading path has not been exercised against a live wallet and a
-   live order book as of this writing (see `docs/LIMITATIONS.md` §1).
+2. `lockPosition` has no fixed slippage-tolerance parameter (that was the old
+   `createOrder(..., { slippage: 0.03 })` mechanism, removed with the
+   stake-sizing fix — see `docs/API_NOTES.md` §1a). The real remaining risk
+   is the book moving between `quoteBinaryStake`'s quote and `placeOrder`'s
+   execution: a confirmed zero-fill is now caught (`ZeroFillError`, discards
+   the intent rather than recording a phantom lock), but a *partial* fill at
+   a materially worse average price than quoted is not separately bounded or
+   flagged — the user just sees whatever the real fill's `filled`/`price`
+   worked out to.
+3. The full trading path has been exercised against a live wallet and a live
+   order book (see `docs/LIMITATIONS.md` §1's 2026-09-03 end-to-end lock/claim
+   cycle), and the stake-sizing fix's own code path was partially verified
+   live on 2026-09-06 (one real `quoteBinaryStake` call succeeded against the
+   real indexer). A full lock-and-fill round trip against the *new* sizing
+   code specifically is still pending, blocked by intermittent indexer
+   degradation, not by the code — see `docs/LIMITATIONS.md` §7.
 4. The backend history mirror (Threat 7) trusts the client's reported
-   `filledAmount`/`fillPrice` once the `txHash` checks out — a compromised or
-   modified frontend build could still write plausible-looking but wrong
-   numbers into someone's own history.
+   `filledAmount`/`fillPrice` once the `txHash` and `walletAddress` both
+   check out against the real receipt — a compromised or modified frontend
+   build could still write plausible-looking but wrong numbers into that
+   *same wallet's own* history (the wallet-ownership check closes the
+   cross-wallet spoofing path from the earlier version of this section, but
+   never claimed to verify the exact amount/price — see Threat 7).

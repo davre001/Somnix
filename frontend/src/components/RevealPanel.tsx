@@ -13,7 +13,7 @@ import { ShareCard } from '@/components/ShareCard';
 
 export function RevealPanel() {
   const router = useRouter();
-  const { activeLock, wallet, prepareSameAgain, clearLock } = useSomnix();
+  const { activeLock, wallet, recents, recordLoss, prepareSameAgain, clearLock } = useSomnix();
   const [claimedTx, setClaimedTx] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -51,6 +51,17 @@ export function RevealPanel() {
       });
     }
   }, [userWon]);
+
+  // A loss has no claim to trigger a recents entry the way a win/void does
+  // (see useClaim.ts#recordLoss) — record it here, the one place a resolved
+  // loss is actually observed. Guarded by `recents` already having this
+  // window so the 8s resolution poll doesn't rewrite localStorage every tick.
+  useEffect(() => {
+    if (!activeLock || !resolution?.resolved || resolution.voided) return;
+    if (resolution.winningSide === activeLock.side) return;
+    if (recents.some((r) => r.id === activeLock.marketId)) return;
+    recordLoss(activeLock, resolution.winningSide!);
+  }, [activeLock, resolution, recents, recordLoss]);
 
   if (!activeLock) {
     return (

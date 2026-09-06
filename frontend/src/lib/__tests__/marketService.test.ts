@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+// @vitest-environment jsdom
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import {
   getWindowDurationMs,
   getCurrentWindowBounds,
@@ -6,8 +7,14 @@ import {
   createLock,
   fetchLiveMarkets,
   fetchLiveLengths,
+  getSessionBudget,
+  saveSessionBudget,
+  getSessionLockedTotal,
+  addToSessionLockedTotal,
+  resetSessionLockedTotal,
+  getLossStreak,
 } from '../marketService';
-import { MarketWindow } from '../types';
+import { MarketWindow, RecentWindow } from '../types';
 
 describe('Market Service & Window Calculations', () => {
   it('should return correct durations in milliseconds', () => {
@@ -143,5 +150,82 @@ describe('fetchLiveLengths', () => {
 
     const lengths = await fetchLiveLengths('BTC');
     expect(lengths).toEqual([]);
+  });
+});
+
+describe('session loss budget', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('has no budget and a zero total by default', () => {
+    expect(getSessionBudget()).toBeNull();
+    expect(getSessionLockedTotal()).toBe(0);
+  });
+
+  it('persists a saved budget and clears it when set back to null', () => {
+    saveSessionBudget(50);
+    expect(getSessionBudget()).toBe(50);
+    saveSessionBudget(null);
+    expect(getSessionBudget()).toBeNull();
+  });
+
+  it('rejects a non-positive or non-finite budget as "no cap" rather than storing garbage', () => {
+    saveSessionBudget(0);
+    expect(getSessionBudget()).toBeNull();
+    saveSessionBudget(-5);
+    expect(getSessionBudget()).toBeNull();
+    saveSessionBudget(NaN);
+    expect(getSessionBudget()).toBeNull();
+  });
+
+  it('accumulates the locked total across multiple locks', () => {
+    expect(addToSessionLockedTotal(10)).toBe(10);
+    expect(addToSessionLockedTotal(15)).toBe(25);
+    expect(getSessionLockedTotal()).toBe(25);
+  });
+
+  it('resets the total without touching the budget cap', () => {
+    saveSessionBudget(100);
+    addToSessionLockedTotal(40);
+    resetSessionLockedTotal();
+    expect(getSessionLockedTotal()).toBe(0);
+    expect(getSessionBudget()).toBe(100);
+  });
+});
+
+describe('getLossStreak', () => {
+  function recent(userResult: RecentWindow['userResult']): RecentWindow {
+    return {
+      id: `w-${Math.random()}`,
+      pair: 'BTC',
+      length: '15m',
+      startTime: 0,
+      endTime: 0,
+      startPrice: 65000,
+      resultSide: 'green',
+      userPlayed: true,
+      userResult,
+    };
+  }
+
+  it('is 0 with no history', () => {
+    expect(getLossStreak([])).toBe(0);
+  });
+
+  it('counts consecutive losses at the front (most-recent-first)', () => {
+    expect(getLossStreak([recent('wrong'), recent('wrong'), recent('wrong')])).toBe(3);
+  });
+
+  it('stops counting the moment a win breaks the run', () => {
+    expect(getLossStreak([recent('wrong'), recent('wrong'), recent('right'), recent('wrong')])).toBe(2);
+  });
+
+  it('stops counting on a void, same as a win', () => {
+    expect(getLossStreak([recent('wrong'), recent('void'), recent('wrong')])).toBe(1);
+  });
+
+  it('is 0 immediately after the most recent result is a win', () => {
+    expect(getLossStreak([recent('right'), recent('wrong'), recent('wrong')])).toBe(0);
   });
 });

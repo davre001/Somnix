@@ -12,7 +12,11 @@ import {
   NotConfiguredError,
   isBinaryMarket,
   fromHuman,
+  toHuman,
+  ORDER_TYPE,
   type UnifiedMarket,
+  type SomniaMarketsClient,
+  type BinaryBuySide,
 } from '@somnia-chain/markets-sdk';
 import { somniaShannon } from '@somnia-chain/markets-sdk/chains';
 import type { WalletClient } from 'viem';
@@ -24,6 +28,21 @@ import { savePendingLockIntent, clearPendingLockIntent } from './marketService';
 // old default here) never existed in DNS. Verified live via a `{ __typename }`
 // probe before wiring in.
 const INDEXER_URL = process.env.NEXT_PUBLIC_DREAMDEX_INDEXER_URL || 'https://dev.smk.somnia.host/v1/graphql';
+
+/**
+ * A `placeOrder` IOC call that confirmed on-chain but crossed nothing — the
+ * book moved between `quoteBinaryStake` and `placeOrder`. This IS a real,
+ * gas-costing transaction (unlike InvalidInputError, which never left the
+ * client), but it escrowed nothing and holds no position, so for lock-intent
+ * purposes it must be treated the same as a proven failure: safe to discard,
+ * never promoted into an active lock. See isAmbiguousTxError.
+ */
+export class ZeroFillError extends Error {
+  constructor(symbol: string) {
+    super(`${symbol}: order confirmed but filled nothing — the book moved before it could execute`);
+    this.name = 'ZeroFillError';
+  }
+}
 
 let exchange: SomniaMarkets | null = null;
 
@@ -41,6 +60,17 @@ function getExchange(): SomniaMarkets {
 /** Binds (or, called with undefined, clears) the signer used for locks, claims and the faucet. */
 export function bindExchangeSigner(walletClient: WalletClient | undefined): void {
   getExchange().setSigner(walletClient ? { walletClient } : {});
+}
+
+/**
+ * The shared exchange's underlying SDK client — the live-store tier
+ * (`watchMarket(s)`, `getLive*`, `subscribeLive`) behind
+ * `@somnia-chain/markets-sdk/react`'s hooks. One client, one WebSocket, for
+ * both the money-moving calls above and the live market/odds display in
+ * `hooks/useMarket.ts` — see `components/SomniaLiveProvider.tsx`.
+ */
+export function getExchangeClient(): SomniaMarketsClient {
+  return getExchange().client;
 }
 
 // Known on-chain revert reasons, translated to plain language. Anything not
@@ -82,6 +112,7 @@ export function describeExchangeError(err: unknown): string {
     const code = err.errorName || err.reason || '';
     return CONTRACT_REVERT_MESSAGES[code] ?? 'The network rejected this transaction. Please try again.';
   }
+  if (err instanceof ZeroFillError) return 'The market moved before your order could fill. Try again.';
   if (err instanceof InvalidInputError) return describeInvalidInput(err.message);
   if (err instanceof IndexerError) return 'Somnia indexer is unreachable right now — try again shortly.';
   if (err instanceof RpcError) return 'Could not reach the Somnia network — check your connection and try again.';
@@ -102,6 +133,8 @@ export function describeExchangeError(err: unknown): string {
  * - ContractRevertError: reverted — chain-confirmed it did NOT happen.
  * - IndexerError while placing an order: the read needed to price/send the order
  *   never completed, so nothing was sent.
+ * - ZeroFillError: DID reach the chain, but confirmed it escrowed/filled
+ *   nothing — chain-confirmed proof there's no position to reconcile.
  * - Wallet rejection (code 4001): the user declined — nothing was sent.
  * - RpcError, or anything else unrecognized (a raw fetch/network failure): the
  *   request may have reached the node with no answer coming back — ambiguous.
@@ -112,7 +145,8 @@ export function isAmbiguousTxError(err: unknown): boolean {
     err instanceof InvalidInputError ||
     err instanceof NotConfiguredError ||
     err instanceof ContractRevertError ||
-    err instanceof IndexerError
+    err instanceof IndexerError ||
+    err instanceof ZeroFillError
   ) {
     return false;
   }
@@ -137,20 +171,120 @@ export async function findLiveMarket(pair: WindowPair, length: WindowLength): Pr
   return null;
 }
 
+// Empirically verified, not documented anywhere in the SDK's types: a binary
+// market's `strike` (and the reference-question `openingAnswer`/`closingAnswer`,
+// when populated) are raw integers at 2 decimal places. Confirmed by comparing
+// `strike` against real BTC/ETH spot price across 11 samples (5 resolved + 1
+// live BTC market, 5 resolved + 1 live ETH market) — every one landed within
+// 0.1% of the real spot price at that 2-decimal scale. See
+// `scripts/inspect-oracle-price.mjs` to reproduce, and docs/LIMITATIONS.md §5
+// for why this replaced a synthetic placeholder.
+const ORACLE_PRICE_DECIMALS = 2;
+
+/**
+ * The market's real, oracle-recorded reference (opening/strike) price in USD,
+ * or null if unavailable (non-binary market, or no strike indexed yet).
+ * `market.info` is the SDK's own native `Market` union row — no extra network
+ * call needed beyond what `findLiveMarket`/`ex.loadMarkets()` already did.
+ */
+export function getRealStartPrice(market: UnifiedMarket): number | null {
+  if (!isBinaryMarket(market.info)) return null;
+  const raw = Number(market.info.strike);
+  return Number.isFinite(raw) && raw > 0 ? raw / 10 ** ORACLE_PRICE_DECIMALS : null;
+}
+
 export interface LockResult {
   hash: string;
   filled: number;
   price: number;
 }
 
-/** Buys the outcome token for `side` on `market` with `amount` collateral (a real market order against the live book). */
+const BUY_SIDE: Record<MarketSide, BinaryBuySide> = { green: 'BUY_YES', red: 'BUY_NO' };
+
+/**
+ * Buys `side`'s outcome token on `market` with exactly `amount` collateral (a
+ * real market order against the live book).
+ *
+ * Deliberately does NOT use the unified `exchange.createOrder(symbol, 'market',
+ * 'buy', amount, ...)` convenience method: its `amount` parameter is the
+ * QUANTITY of outcome tokens to buy, not collateral to spend (confirmed
+ * empirically against a real testnet order — `amount: 5` bought exactly 5
+ * tokens for $2.575 at a ~0.515 average price, not $5 — see
+ * `scripts/verify-order-amount-semantics.mjs`). Passing a dollar figure
+ * straight through as a token quantity meant a user who locked "10" was
+ * actually risking `10 × price` (usually well under $10), while the UI
+ * displayed "Lock Amount: 10" / "Max Loss: 10" as if the full $10 were at
+ * stake — a real mismatch between what was shown and what was spent.
+ *
+ * Uses the SDK's own stake-sizing instead:
+ * `client.quoteBinaryStake` converts a collateral BUDGET into the right
+ * token quantity + protective limit by walking the live book so the total
+ * escrow can never exceed the stake, then the raw
+ * `trader.placeOrder(..., orderType: ORDER_TYPE.MARKET)` places it (IOC —
+ * fills what crosses now, cancels the rest). `filled`/`price` are computed
+ * from the tx's own decoded fills, not the pre-trade quote, so a partial
+ * fill (the book thinning between quote and placement) is never misreported
+ * as a full one. A confirmed zero-fill (the book emptied entirely between
+ * quote and placement) throws ZeroFillError rather than returning
+ * `{ filled: 0 }` — see that class for why a real, gas-costing zero-fill
+ * must still be treated as a failure by lockWithIntent/useLock.ts.
+ */
 export async function lockPosition(market: UnifiedMarket, side: MarketSide, amount: number): Promise<LockResult> {
   const ex = getExchange();
-  const label = OUTCOME_LABEL[side];
-  const outcome = market.outcomes?.find((o) => o.label === label);
-  if (!outcome) throw new InvalidInputError(`${market.symbol} has no ${label} outcome`);
-  const order = await ex.createOrder(outcome.symbol, 'market', 'buy', amount, undefined, { slippage: 0.03 });
-  return { hash: order.txHash ?? '', filled: order.filled, price: order.price ?? 0 };
+  const info = market.info;
+  if (!isBinaryMarket(info)) {
+    throw new InvalidInputError(`${market.symbol} is not a binary market`);
+  }
+
+  const buySide = BUY_SIDE[side];
+  const stakeRaw = fromHuman(amount, info.quoteDecimals);
+  const quote = await ex.client.quoteBinaryStake({ marketId: info.id, side: buySide, stake: stakeRaw });
+  if (!quote) {
+    throw new InvalidInputError(
+      `${market.symbol}: the opposite side of the book is empty, or ${amount} is too small to fill a single lot`
+    );
+  }
+
+  let result;
+  try {
+    result = await ex.trader.placeOrder({
+      pool: info.poolAddress,
+      side: quote.side,
+      price: quote.yesPrice,
+      quantity: quote.quantity,
+      orderType: ORDER_TYPE.MARKET,
+    });
+  } catch (err) {
+    // Surface what the (successful) quote asked for alongside whatever
+    // placeOrder threw, so a log can tell "failed before a quote existed"
+    // apart from "quoted fine, placeOrder itself failed" — see useLock.ts's
+    // structured error log.
+    if (err instanceof Error) {
+      err.message = `${err.message} (quote: quantity=${quote.quantity} yesPrice=${quote.yesPrice} escrow=${quote.escrow})`;
+    }
+    throw err;
+  }
+
+  const filled = result.fills.reduce((sum, f) => sum + toHuman(f.quantityFilled, info.baseDecimals), 0);
+  if (filled === 0) {
+    // A confirmed IOC order that crossed nothing (the book moved between the
+    // quote and placeOrder) — a real tx, but zero position. Must be treated
+    // as a proven failure, not a successful lock with filled: 0 — otherwise
+    // lockWithIntent clears the intent as if it succeeded and useLock.ts
+    // records an active lock for a position that doesn't exist.
+    throw new ZeroFillError(market.symbol);
+  }
+  const costHuman = result.fills.reduce(
+    (sum, f) => sum + toHuman(f.quantityFilled, info.baseDecimals) * toHuman(f.fillPrice, info.quoteDecimals),
+    0
+  );
+  // OrderFill.fillPrice is always in YES terms — convert to the traded
+  // outcome's OWN terms for a NO buy, matching what this field has always
+  // meant here (the entry price of the side actually held).
+  const avgYesPrice = costHuman / filled;
+  const price = side === 'green' ? avgYesPrice : 1 - avgYesPrice;
+
+  return { hash: result.hash, filled, price };
 }
 
 /**

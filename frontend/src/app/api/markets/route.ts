@@ -10,4 +10,4 @@ export const GET = apiRoute(async () => {
     console.error(`[${new Date().toISOString()}] [ERROR] Failed to load live markets:`, message);
     return apiError(502, 'Failed to load live markets from DreamDEX indexer', { detail: message });
   }
-});
+}, { scope: 'markets', limit: 30 });

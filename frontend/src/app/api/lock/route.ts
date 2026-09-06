@@ -47,6 +47,9 @@ export const POST = apiRoute(async (req) => {
   }
 
   const normalizedWallet = validateWalletAddress(walletAddress);
+  if (!normalizedWallet) {
+    return apiError(400, 'walletAddress must be a valid 0x-prefixed 40-character hex address');
+  }
   const normalizedTxHash = txHash.trim();
 
   const verification = await verifyOnChainTx(normalizedTxHash, normalizedWallet);
@@ -69,4 +72,4 @@ export const POST = apiRoute(async (req) => {
   await saveLock(lock);
 
   return apiOk(lock, 201);
-});
+}, { scope: 'lock', limit: 10 });

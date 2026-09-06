@@ -9,7 +9,8 @@ import { Countdown } from '@/components/Countdown';
 import { OddsBar } from '@/components/OddsBar';
 import { AmountChips } from '@/components/AmountChips';
 import { SideButtons } from '@/components/SideButtons';
-import { ReasonText } from '@/components/ReasonText';
+import { LockChecklist } from '@/components/LockChecklist';
+import { SessionBudget } from '@/components/SessionBudget';
 import { LandingPage } from '@/components/LandingPage';
 import { ShareCard } from '@/components/ShareCard';
 import { WalletModal } from '@/components/WalletModal';
@@ -34,7 +35,6 @@ export default function HomePage() {
     selectedLength,
     currentMarket,
     remainingSeconds,
-    lockValidation,
     activeLock,
     recents,
   } = useSomnix();
@@ -63,7 +63,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="w-full min-h-screen flex flex-col bg-transparent">
+    <div className="w-full min-h-screen flex flex-col bg-transparent animate-in fade-in zoom-in-95 duration-400">
       {/* Top Full-Width Navigation Bar */}
       <TopBar />
 
@@ -130,10 +130,8 @@ export default function HomePage() {
               <AmountChips />
             </div>
 
-            {/* Reason notice if buttons are disabled */}
-            {!lockValidation.canLock && (
-              <ReasonText reason={lockValidation.reason} />
-            )}
+            {/* Structured pre-lock checklist — every check at once, not just the first blocking one */}
+            <LockChecklist />
 
             {/* Green & Red Decision Buttons */}
             <SideButtons />
@@ -141,6 +139,9 @@ export default function HomePage() {
 
           {/* Right Sidebar Information Panels (4 Columns) – shows below on mobile */}
           <div className="lg:col-span-4 space-y-3 sm:space-y-4 order-2 lg:order-2">
+            {/* Session Loss Budget — optional self-imposed cap across the whole session */}
+            <SessionBudget />
+
             {/* Market Info Summary */}
             <div className="p-5 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">

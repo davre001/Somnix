@@ -10,4 +10,4 @@ export const GET = apiRoute(async (_req, { params }) => {
   }
 
   return apiOk(lock);
-});
+}, { scope: 'lock-get', limit: 30 });

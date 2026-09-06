@@ -59,7 +59,9 @@ Event Contracts on DreamDEX allow traders to take binary **Up (Green / YES)** or
 
 ## 3. `@somnia-chain/markets-sdk` Reference
 
-The official SDK (`@somnia-chain/markets-sdk` v0.28.0+) provides unified TypeScript interfaces for all DreamDEX operations.
+The official SDK (`@somnia-chain/markets-sdk`, pinned in this repo to exact
+version `0.28.1` — no caret range, see `docs/API_NOTES.md` §1) provides
+unified TypeScript interfaces for all DreamDEX operations.
 
 ### A. Addresses & Initialization
 ```typescript
@@ -118,16 +120,31 @@ SOMNIX abstracts the complexity of order books, token tickers, and chart noise i
 ## 5. What SOMNIX's code actually calls
 
 Sections 3.C/3.D above show the SDK's **raw** `trader.placeOrder`/`trader.redeem`
-surface for reference. SOMNIX itself doesn't call those directly — it goes
-through the SDK's higher-level unified `SomniaMarkets` exchange, in
-`frontend/src/lib/exchange.ts`:
+surface for reference. SOMNIX itself calls that raw tier directly in both
+cases below — not the higher-level unified `SomniaMarkets.createOrder`/`.redeem`
+convenience methods, in both cases because the unified tier's behavior turned
+out to be a real, measured mismatch with what SOMNIX needs (see
+`docs/API_NOTES.md` §1/§1a for the empirical evidence behind each):
 
-- `exchange.createOrder(outcomeSymbol, "market", "buy", amount, undefined, { slippage })`
-  for locking (resolves tick/lot alignment, YES/NO book-crossing price, and
-  the raw `placeOrder` call internally).
-- `exchange.redeem(marketId, amount)` for claiming.
+- **Locking** (`exchange.ts#lockPosition`): `exchange.client.quoteBinaryStake({
+  marketId, side, stake })` sizes a real dollar stake into a token quantity +
+  protective price by walking the live book, then
+  `exchange.trader.placeOrder({ pool, side, price, quantity, orderType:
+  ORDER_TYPE.MARKET })` (raw tier, IOC) executes it. **Not**
+  `exchange.createOrder(...)` — that unified convenience method treats its
+  `amount` parameter as a token quantity to buy, not collateral to spend,
+  which silently mis-sized every lock until this was found and fixed
+  (2026-09-05/06).
+- **Claiming** (`exchange.ts#claimWinnings`): `exchange.client.getMarket(marketId)`
+  reads the market directly by id, then `exchange.trader.redeem({ marketId,
+  market, outcomeIdx, amount })` (raw tier) redeems it. **Not**
+  `exchange.redeem(ref, amount)` — that unified method resolves `ref` through
+  the SDK's live-markets registry, which excludes finalized (resolved)
+  markets by design, so it throws "unknown market ref" for every real claim
+  regardless of calling `loadMarkets()` first (found and fixed 2026-09-03).
 - `exchange.trader.faucet({})` for the testnet collateral faucet.
-- `exchange.client.getMarket(marketId)` for resolution checks.
+- `exchange.client.getMarket(marketId)` / `getMarketResolution(marketId)` for
+  resolution checks.
 
 See `docs/API_NOTES.md` for the exact failure modes and idempotency handling
 around these calls.

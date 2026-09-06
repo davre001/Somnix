@@ -33,8 +33,11 @@ export function parsePositiveNumber(value: unknown): number | null {
   return null;
 }
 
+const WALLET_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+
+/** Returns the trimmed address only if it's a well-formed 0x + 40-hex-char EVM address, else null. */
 export function validateWalletAddress(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  return WALLET_ADDRESS_RE.test(trimmed) ? trimmed : null;
 }

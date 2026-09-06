@@ -10,4 +10,4 @@ export const GET = apiRoute(async (_req, { params }) => {
   }
 
   return apiOk(claim);
-});
+}, { scope: 'claim-get', limit: 30 });

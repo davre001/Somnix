@@ -6,6 +6,8 @@ const STORAGE_KEYS = {
   RECENT_WINDOWS: 'somnix_recent_windows_v1',
   WATCH_MODE: 'somnix_watch_mode_v1',
   PENDING_LOCK: 'somnix_pending_lock_v1',
+  SESSION_BUDGET: 'somnix_session_budget_v1',
+  SESSION_LOCKED_TOTAL: 'somnix_session_locked_total_v1',
 };
 
 // Base fallback market prices
@@ -301,4 +303,74 @@ export function addRecentWindow(recent: RecentWindow): void {
   const current = getRecentWindows();
   const updated = [recent, ...current.filter((r) => r.id !== recent.id)].slice(0, 15);
   localStorage.setItem(STORAGE_KEYS.RECENT_WINDOWS, JSON.stringify(updated));
+}
+
+/**
+ * Consecutive losses at the front of `recents` (most-recent-first) — resets
+ * the instant a win or void breaks the run. Powers the loss-streak cooldown
+ * prompt (see SideButtons.tsx) — a soft, dismissible nudge the user can
+ * always click past, not a hard rule, since the point is friction against
+ * compulsive re-locking, not a limit imposed on them.
+ */
+export function getLossStreak(recents: RecentWindow[]): number {
+  let streak = 0;
+  for (const r of recents) {
+    if (r.userResult !== 'wrong') break;
+    streak++;
+  }
+  return streak;
+}
+
+/**
+ * A user-set cap on how much collateral they'll lock in total this session
+ * (see lib/hooks/useLock.ts#lockValidation) — the app's own UX guard, not a
+ * protocol limit. `null` means no cap is set. "Session" here means "until
+ * you reset it" (see resetSessionLockedTotal), not a browser-tab lifetime —
+ * there's no login/logout boundary in this app to hang it on.
+ */
+export function getSessionBudget(): number | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SESSION_BUDGET);
+    if (raw === null) return null;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSessionBudget(amount: number | null): void {
+  if (typeof window === 'undefined') return;
+  if (amount === null || !Number.isFinite(amount) || amount <= 0) {
+    localStorage.removeItem(STORAGE_KEYS.SESSION_BUDGET);
+  } else {
+    localStorage.setItem(STORAGE_KEYS.SESSION_BUDGET, String(amount));
+  }
+}
+
+/** Total collateral locked since the session total was last reset (see resetSessionLockedTotal). */
+export function getSessionLockedTotal(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SESSION_LOCKED_TOTAL);
+    const parsed = raw === null ? 0 : Number(raw);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Records a real lock's amount against the running session total. Returns the new total. */
+export function addToSessionLockedTotal(amount: number): number {
+  if (typeof window === 'undefined') return 0;
+  const next = getSessionLockedTotal() + amount;
+  localStorage.setItem(STORAGE_KEYS.SESSION_LOCKED_TOTAL, String(next));
+  return next;
+}
+
+/** Zeroes the running total without touching the budget cap itself. */
+export function resetSessionLockedTotal(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEYS.SESSION_LOCKED_TOTAL);
 }

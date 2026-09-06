@@ -23,6 +23,9 @@ export const POST = apiRoute(async (req) => {
   }
 
   const normalizedWallet = validateWalletAddress(walletAddress);
+  if (!normalizedWallet) {
+    return apiError(400, 'walletAddress must be a valid 0x-prefixed 40-character hex address');
+  }
   const normalizedTxHash = txHash.trim();
   const existingClaim = await getClaim(lockId);
 
@@ -45,4 +48,4 @@ export const POST = apiRoute(async (req) => {
   await saveLock({ ...lock, status: 'claimed' });
 
   return apiOk(claim, 201);
-});
+}, { scope: 'claim', limit: 10 });

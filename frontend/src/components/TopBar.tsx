@@ -306,14 +306,14 @@ export function TopBar() {
                     </button>
 
                     <a
-                      href="https://testnet.somnia.network/faucet"
+                      href="https://cloud.google.com/application/web3/faucet/somnia/shannon"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full flex items-center justify-between py-2 px-2.5 mb-1.5 rounded-xl text-xs text-zinc-400 hover:bg-zinc-900 hover:text-white transition-colors"
                     >
                       <span className="flex items-center gap-2">
                         <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>Official On-Chain Faucet</span>
+                        <span>Get STT (Gas) Faucet</span>
                       </span>
                       <span className="text-[10px] font-mono text-zinc-500">External</span>
                     </a>

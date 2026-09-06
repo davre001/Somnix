@@ -54,6 +54,12 @@ export function RecentsList() {
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 animate-in fade-in duration-300">
+      {/* Every result below comes from a real on-chain resolution read at claim time
+          (see useSomnix.tsx#claimPayout) — it's just stored on this device only, so
+          it won't show up if you open SOMNIX in a different browser or on another device. */}
+      <p className="text-[10px] sm:text-[11px] font-mono text-zinc-500 -mb-1">
+        Saved on this device only — not synced across browsers or devices.
+      </p>
       {/* Overview Grid (2x2 on Mobile, 4 Cols on Desktop) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c0c10] border border-zinc-800 space-y-0.5 sm:space-y-1">
@@ -195,7 +201,13 @@ export function RecentsList() {
                         </span>
                       </div>
                       <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400 block">
-                        Locked <strong className={isUserGreen ? 'text-emerald-400' : 'text-red-400'}>{item.userSide?.toUpperCase()}</strong> ({item.userAmount} {wallet.currencySymbol})
+                        Locked <strong className={isUserGreen ? 'text-emerald-400' : 'text-red-400'}>{item.userSide?.toUpperCase()}</strong> ({item.userAmount} {wallet.currencySymbol}){' '}
+                        <span
+                          className="text-zinc-600 border-b border-dotted border-zinc-700 cursor-help"
+                          title="This amount comes from this device's local history, not a re-check of the on-chain fill logs. It never affects your real payout — that always comes from a live chain read when you claim, never from this number."
+                        >
+                          self-reported
+                        </span>
                       </span>
                     </>
                   ) : (

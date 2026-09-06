@@ -21,4 +21,4 @@ export const PATCH = apiRoute(async (req, { params }) => {
 
   const claim = await updateClaimStatus(id, status);
   return apiOk(claim);
-});
+}, { scope: 'claim-status', limit: 20 });

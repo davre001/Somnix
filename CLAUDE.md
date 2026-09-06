@@ -25,7 +25,7 @@ indexer read.
   the lock intent is persisted (`marketService.ts#savePendingLockIntent`)
   *before* the wallet prompt, and reconciled against the wallet's real
   outcome-token balance (`exchange.ts#checkFilledAmount`) the next time a
-  signer binds — see `useSomnix.tsx#reconcilePendingLock`.
+  signer binds — see `lib/hooks/useLock.ts#reconcilePendingLock`.
 - A claim (`exchange.ts#claimWinnings`) is never sent unless
   `exchange.ts#getResolution` confirms the market actually resolved on-chain
   and the connected wallet's side actually won (or the market voided).
