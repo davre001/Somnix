@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useSomnix } from '@/lib/useSomnix';
 import { shortenAddress } from '@/lib/somnia';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
+import { SomnixLogo } from '@/components/ui/somnix-logo';
 import { MenuToggleIcon } from '@/components/ui/menu-toggle-icon';
 import { useScroll } from '@/components/ui/use-scroll';
 import { cn } from '@/lib/utils';
@@ -136,12 +137,9 @@ export function TopBar() {
             className="flex items-center gap-2.5 group cursor-pointer text-left focus:outline-none"
             aria-label="Return to Somnix Landing Page"
           >
-            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-black text-black text-sm tracking-tighter shadow-md transition-transform duration-200 group-hover:scale-105">
-              SX
+            <div className="rounded-lg shadow-md transition-transform duration-200 group-hover:scale-105">
+              <SomnixLogo className="h-9 md:h-10" alt="SOMNIX" />
             </div>
-            <span className="font-black tracking-tight text-white text-lg leading-none uppercase">
-              SOMNIX
-            </span>
           </button>
 
           {/* Desktop Nav Links */}

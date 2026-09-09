@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { decodeTradeShareUrl } from '@/lib/tradeShare';
 import { useSomnix } from '@/lib/useSomnix';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
+import { SomnixLogo } from '@/components/ui/somnix-logo';
 import {
   TrendingUp,
   TrendingDown,
@@ -84,10 +85,7 @@ function TradeContent() {
       <header className="w-full border-b border-zinc-800/80 bg-[#050507]/90 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-white text-black font-black text-sm flex items-center justify-center tracking-tighter shadow-md">
-              SX
-            </div>
-            <span className="font-black text-lg tracking-tight text-white uppercase">SOMNIX</span>
+            <SomnixLogo className="h-9 md:h-10" alt="SOMNIX" />
           </Link>
 
           <div className="flex items-center gap-3">
