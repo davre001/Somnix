@@ -4,7 +4,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useSomnix } from '@/lib/useSomnix';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
-import { SomnixLogo } from '@/components/ui/somnix-logo';
 import { LiveCryptoChart } from '@/components/LiveCryptoChart';
 import { PublicIcon } from '@/components/ui/public-icon';
 import FAQ1 from '@/components/ui/faq-monocrhome';
@@ -39,7 +38,10 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* Brand */}
           <div className="flex items-center gap-3 shrink-0">
-            <SomnixLogo className="h-9 md:h-10" alt="SOMNIX" />
+            <div className="w-8 h-8 rounded-lg bg-white text-black font-black text-sm flex items-center justify-center tracking-tighter shadow-md">
+              SX
+            </div>
+            <span className="font-black text-lg tracking-tight text-white uppercase">SOMNIX</span>
           </div>
 
           {/* Center section links */}
