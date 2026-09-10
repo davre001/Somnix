@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Share2, Copy, Check, X } from 'lucide-react';
 import { WindowPair, WindowLength, MarketSide } from '@/lib/types';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
+import { SomnixLogo } from '@/components/ui/somnix-logo';
 import { generateTradeShareUrl } from '@/lib/tradeShare';
 
 interface ShareCardProps {
@@ -69,10 +70,7 @@ export function ShareCard({
         <div className="w-full p-5 rounded-2xl bg-gradient-to-br from-black to-zinc-900 border border-zinc-700 shadow-xl space-y-4 text-left">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-white text-black font-black text-xs flex items-center justify-center">
-                SX
-              </div>
-              <span className="font-bold text-sm tracking-tight text-white uppercase">SOMNIX</span>
+              <SomnixLogo markClassName="h-6" wordmarkClassName="h-4" />
             </div>
             <span className="text-[10px] font-mono text-zinc-400 uppercase bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700">
               Somnia Testnet

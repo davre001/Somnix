@@ -6,6 +6,7 @@ import { useSomnix } from '@/lib/useSomnix';
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button';
 import { LiveCryptoChart } from '@/components/LiveCryptoChart';
 import { PublicIcon } from '@/components/ui/public-icon';
+import { SomnixLogo } from '@/components/ui/somnix-logo';
 import FAQ1 from '@/components/ui/faq-monocrhome';
 import { CinematicFooter } from '@/components/ui/motion-footer';
 
@@ -37,12 +38,7 @@ export function LandingPage() {
       <header className="w-full border-b border-white/[0.06] bg-[#050507]/70 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* Brand */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-white text-black font-black text-sm flex items-center justify-center tracking-tighter shadow-md">
-              SX
-            </div>
-            <span className="font-black text-lg tracking-tight text-white uppercase">SOMNIX</span>
-          </div>
+          <SomnixLogo className="shrink-0" />
 
           {/* Center section links */}
           <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">

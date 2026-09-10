@@ -29,6 +29,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+dev.log
+dev-server.log
+install.log
 
 # env files (never commit real secrets — .env.example is a template, not a secret)
 .env*
