@@ -77,7 +77,12 @@ const SomnixContext = createContext<SomnixContextType | null>(null);
  * a fixed order but need each other's callbacks (see each hook's own file).
  */
 export function SomnixProvider({ children }: { children: React.ReactNode }) {
-  const [isViewingLanding, setIsViewingLanding] = useState(false);
+  // Every fresh page load starts on the marketing landing page. Entering the app
+  // is always an explicit action — "Connect Wallet" / "Watch Mode" / "Launch app"
+  // (which flip this to false). A wallet connection rehydrated from localStorage
+  // must NOT silently skip the landing on a return visit, so this defaults to true
+  // regardless of the persisted wallet state.
+  const [isViewingLanding, setIsViewingLanding] = useState(true);
 
   const reconcileRef = useRef<() => void>(() => {});
   const enterAppRef = useRef<() => void>(() => {});
