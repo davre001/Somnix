@@ -46,7 +46,13 @@ body {
   min-height: 100dvh;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  /* `clip`, not `hidden`. `overflow-x: hidden` forces the browser to compute
+     `overflow-y: auto`, which turns the element into a scroll container and
+     breaks `position: sticky` on descendants — the sticky nav anchors to
+     <body> instead of the viewport and scrolls away. `clip` still prevents
+     horizontal scroll but establishes no scroll container, so the nav stays
+     pinned. (Do not switch this back to `hidden`.) */
+  overflow-x: clip;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

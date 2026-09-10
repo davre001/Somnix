@@ -35,7 +35,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://s.tradingview.com" />
         <link rel="dns-prefetch" href="https://s.tradingview.com" />
       </head>
-      <body className="min-h-screen w-full bg-[#050507] text-zinc-100 flex flex-col font-sans selection:bg-white selection:text-black relative overflow-x-hidden">
+      <body className="min-h-screen w-full bg-[#050507] text-zinc-100 flex flex-col font-sans selection:bg-white selection:text-black relative overflow-x-clip">
         {/* Three.js 3D Undulating Particle Wave Background (30% opacity) */}
         <ParticleWave className="opacity-30" />
 
