@@ -28,7 +28,7 @@ Built for the Somnia × DreamDEX Event Contracts Hackathon.
 
 <div align="center">
 
-**[ ▶ Demo video — coming soon ]**
+**<iframe width="560" height="315" src="https://www.youtube.com/embed/XB_I94tpW5c?si=ufpWHHPsWrxDYrGu" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>**
 
 </div>
 
